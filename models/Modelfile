@@ -1,0 +1,13 @@
+# 1. Aponta para o seu arquivo GGUF exato
+FROM ./mistral-7b-v0.3.Q4_K_M.gguf
+
+# 2. Define o formato Alpaca que você usou no treino
+TEMPLATE """### Instruction:
+{{ .Prompt }}
+
+### Response:
+"""
+
+# 3. Configura a criatividade (0.3 é ideal para a área médica)
+PARAMETER temperature 0.3
+PARAMETER num_ctx 4096
