@@ -1,0 +1,11 @@
+fastapi==0.104.1
+uvicorn==0.24.0
+
+langchain==1.2.10
+langchain-core==1.2.11
+langchain-community==0.4.1
+langchain-chroma==1.1.0
+langchain-ollama==0.3.10
+langgraph==1.0.8
+
+chromadb-client==1.5.0

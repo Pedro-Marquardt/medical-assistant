@@ -1,0 +1,15 @@
+# Configurações globais do projeto Python
+[tool.poetry]
+name = "medical-assistant"
+version = "0.1.0"
+description = "API FastAPI para assistente médico"
+authors = ["Pedro Marquardt <pedromarquardt13@email.com"]
+
+[tool.poetry.dependencies]
+python = ">=3.8,<3.12"
+fastapi = "*"
+uvicorn = "*"
+
+[build-system]
+requires = ["poetry-core>=1.0.0"]
+build-backend = "poetry.core.masonry.api"
