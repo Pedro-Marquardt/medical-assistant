@@ -3,7 +3,7 @@ services:
     image: chromadb/chroma:1.1.0
     container_name: medical-assistant-chroma
     ports:
-      - "8000:8000"
+      - "8001:8000"
     volumes:
       - chroma_data:/chroma/chroma
     environment:
@@ -24,8 +24,24 @@ services:
     environment:
       - CHROMA_HOST=chroma
       - CHROMA_PORT=8000
+      - MCP_HOST=mcp-server
+      - MCP_PORT=8000
     depends_on:
       - chroma
+      - mcp-server
+    networks:
+      - medical-assistant-network
+
+  mcp-server:
+    build:
+      context: ./app/mcp-server
+      dockerfile: Dockerfile
+    container_name: medical-assistant-mcp
+    ports:
+      - "8000:8000"
+    environment:
+      - PYTHONUNBUFFERED=1
+      - LOG_LEVEL=INFO
     networks:
       - medical-assistant-network
 

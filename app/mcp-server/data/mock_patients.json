@@ -1,0 +1,86 @@
+[
+  {
+    "id": "PAC-001",
+    "nome": "João da Silva",
+    "cpf": "123.456.789-00",
+    "rg": "MG-12.345.678",
+    "data_nascimento": "1965-04-12",
+    "tipo_sanguineo": "O+",
+    "alergias": [],
+    "doenças": ["Hipertensão Arterial"],
+    "medicamentos_em_uso": ["Losartana 50mg"],
+    "historico_familiar": ["Pai com histórico de infarto agudo do miocárdio"]
+  },
+  {
+    "id": "PAC-002",
+    "nome": "Maria Souza Oliveira",
+    "cpf": "987.654.321-11",
+    "rg": "SP-98.765.432",
+    "data_nascimento": "1982-11-25",
+    "tipo_sanguineo": "A+",
+    "alergias": ["Dipirona Sódica", "Penicilina"],
+    "doenças": ["Diabetes Tipo 2", "Asma Leve"],
+    "medicamentos_em_uso": ["Metformina 850mg", "Salbutamol (SOS)"],
+    "historico_familiar": ["Mãe diabética"]
+  },
+  {
+    "id": "PAC-003",
+    "nome": "Pedro Henrique de Almeida",
+    "cpf": "111.222.333-44",
+    "rg": "RJ-11.222.333",
+    "data_nascimento": "1995-02-10",
+    "tipo_sanguineo": "B-",
+    "alergias": ["Látex"],
+    "doenças": ["Epilepsia"],
+    "medicamentos_em_uso": ["Carbamazepina 200mg"],
+    "historico_familiar": []
+  },
+  {
+    "id": "PAC-004",
+    "nome": "Ana Beatriz Ferreira",
+    "cpf": "555.666.777-88",
+    "rg": "PR-55.666.777",
+    "data_nascimento": "2001-08-30",
+    "tipo_sanguineo": "AB+",
+    "alergias": ["Iodo", "Camarão"],
+    "doenças": [],
+    "medicamentos_em_uso": ["Anticoncepcional Oral"],
+    "historico_familiar": ["Avó materna com câncer de mama"]
+  },
+  {
+    "id": "PAC-005",
+    "nome": "Carlos Roberto Gomes",
+    "cpf": "444.555.666-77",
+    "rg": "RS-44.555.666",
+    "data_nascimento": "1958-06-18",
+    "tipo_sanguineo": "O-",
+    "alergias": ["AAS (Ácido Acetilsalicílico)"],
+    "doenças": ["Insuficiência Renal Crônica", "Hipertensão Arterial"],
+    "medicamentos_em_uso": ["Furosemida 40mg", "Anlodipino 5mg"],
+    "historico_familiar": ["Doença renal policística na família"]
+  },
+  {
+    "id": "PAC-006",
+    "nome": "Luciana Mendes",
+    "cpf": "222.333.444-55",
+    "rg": "SC-22.333.444",
+    "data_nascimento": "1979-09-05",
+    "tipo_sanguineo": "A-",
+    "alergias": ["Amendoim"],
+    "doenças": ["Hipotireoidismo"],
+    "medicamentos_em_uso": ["Levotiroxina 100mcg"],
+    "historico_familiar": ["Mãe com doença de Hashimoto"]
+  },
+  {
+    "id": "PAC-007",
+    "nome": "Roberto Carlos Braga",
+    "cpf": "333.444.555-66",
+    "rg": "SP-33.444.555",
+    "data_nascimento": "1950-12-01",
+    "tipo_sanguineo": "O+",
+    "alergias": ["Contraste Radiológico"],
+    "doenças": ["Arritmia Cardíaca", "Osteoartrite"],
+    "medicamentos_em_uso": ["Amiodarona 200mg", "Paracetamol 750mg (SOS)"],
+    "historico_familiar": []
+  }
+]

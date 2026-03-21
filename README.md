@@ -8,7 +8,7 @@ Durante o desenvolvimento deste projeto, realizamos o treinamento de um modelo d
 
 ## 🏗️ Decisão Arquitetural: O uso do modelo treinado
 
-Embora o *fine-tuning* tenha sido realizado e validado com sucesso, **optamos por não utilizar o modelo treinado na versão final em produção deste projeto.**
+Embora o *fine-tuning* tenha sido realizado e validado com sucesso, **optamos por não utilizar o modelo treinado na aplicação que utiliza os grafos deste projeto.**
 
 **Por quê?**
 Por questões de processamento e flexibilidade da arquitetura. Ao passar pelo *fine-tuning* focado estritamente no formato de instrução direta (Text-to-Text), o modelo tornou-se "pequeno" e excessivamente especializado. 
@@ -28,7 +28,77 @@ Todo o processo de treinamento e preparação dos dados foi rigorosamente docume
 
 ---
 
-## 🚀 Como rodar o experimento treinado localmente
+## � Como rodar o projeto completo (API + ChromaDB)
+
+Para executar a aplicação completa com todos os serviços necessários:
+
+### Pré-requisitos
+- Docker e Docker Compose instalados
+- Porta 3030 (API) e 8000 (ChromaDB) disponíveis
+
+### Executando o projeto
+
+**1. Clone o repositório e navegue até a pasta raiz**
+```bash
+cd medical-assistant
+```
+
+**2. Construa e inicie todos os serviços**
+```bash
+docker-compose up -d
+```
+
+**3. Verifique se os serviços estão funcionando**
+```bash
+docker-compose ps
+```
+
+### Acessando a aplicação
+
+- **API**: http://localhost:3030/
+- **ChromaDB**: http://localhost:8000/
+- **Health Check da API**: http://localhost:3030/health/chroma
+
+### Comandos úteis
+
+**Ver logs da API:**
+```bash
+docker-compose logs api
+```
+
+**Ver logs do ChromaDB:**
+```bash
+docker-compose logs chroma
+```
+
+**Ver logs do MCP Server:**
+```bash
+docker-compose logs mcp-server
+```
+
+**Parar os serviços:**
+```bash
+docker-compose down
+```
+
+**Rebuild completo após mudanças:**
+```bash
+docker-compose down
+docker-compose build --no-cache
+docker-compose up -d
+```
+
+### Arquitetura dos Serviços
+
+1. **ChromaDB**: Banco de dados vetorial para protocolos médicos (RAG)
+2. **API FastAPI**: Interface principal com injeção de dependências  
+3. **MCP Server**: Servidor de dados de pacientes para consulta do LLM
+
+O **MCP Server** expõe uma ferramenta chamada `get_patient_data` que permite ao LLM consultar dados de pacientes por CPF, com opções de filtro para alergias, doenças ou informações completas.
+
+---
+
+## �🚀 Como rodar o experimento treinado localmente
 
 Caso deseje testar o modelo que foi treinado com os dados do hospital, ele foi exportado para o formato leve `.gguf` para rodar de forma otimizada via **Ollama** usando processamento de CPU/GPU unificada.
 
