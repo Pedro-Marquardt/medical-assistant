@@ -101,13 +101,22 @@ ollama pull llama3.1
 ollama pull bge-m3  # Para embeddings
 ```
 
-**3. Construa e inicie todos os serviços**
+**3. Popule o ChromaDB com os protocolos médicos**
+```bash
+# Execute o notebook para inserir dados no ChromaDB
+# Navegue até a pasta jupyter e execute:
+cd jupyter
+jupyter notebook rag_insert.ipynb
+# Ou use seu ambiente Jupyter preferido para executar o notebook
+```
+
+**4. Construa e inicie todos os serviços**
 ```bash
 docker-compose build --no-cache
 docker-compose up -d
 ```
 
-**4. Verifique se os serviços estão funcionando**
+**5. Verifique se os serviços estão funcionando**
 ```bash
 docker-compose ps
 ```
