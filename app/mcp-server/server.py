@@ -150,6 +150,7 @@ async def root():
         "endpoints": {
             "sse": "/sse - GET endpoint para estabelecer conexão SSE",
             "messages": "/messages - POST endpoint para enviar mensagens",
+            "tools": "/tools - GET endpoint para listar ferramentas detalhadas",
             "health": "/health - Endpoint de saúde do servidor"
         },
         "tools": [
@@ -159,6 +160,28 @@ async def root():
             "get_patient_by_id"
         ]
     }
+
+
+@app.get("/tools")
+async def get_tools():
+    """Endpoint para obter detalhes completos das ferramentas."""
+    tools = [
+        get_patient_by_name_tool(),
+        get_patient_by_cpf_tool(),
+        get_patient_by_rg_tool(),
+        get_patient_by_id_tool()
+    ]
+    
+    # Converte Tool objects para dicionários
+    tools_dict = []
+    for tool in tools:
+        tools_dict.append({
+            "name": tool.name,
+            "description": tool.description,
+            "inputSchema": tool.inputSchema
+        })
+    
+    return {"tools": tools_dict}
 
 
 @app.get("/health")

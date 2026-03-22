@@ -9,7 +9,7 @@ class ConfigEnvs:
     
     # ChromaDB Configuration
     HOST_CHROMA_DB = os.getenv("CHROMA_HOST", "localhost")
-    CHROMA_PORT = int(os.getenv("CHROMA_PORT", "8000"))
+    CHROMA_PORT = int(os.getenv("CHROMA_PORT", "8001"))
     CHROMA_COLLECTION = os.getenv("CHROMA_COLLECTION", "hospital_protocols")
     
     # Ollama Configuration
@@ -17,7 +17,7 @@ class ConfigEnvs:
     
     # MCP Configuration
     MCP_API_HOST = os.getenv("MCP_HOST", "localhost")
-    MCP_API_PORT = int(os.getenv("MCP_PORT", "8080"))
+    MCP_API_PORT = int(os.getenv("MCP_PORT", "8000"))
     
     # Embeddings Configuration
     EMBEDDING_MODEL = os.getenv("EMBEDDING_MODEL", "bge-m3")
