@@ -86,16 +86,16 @@ class MCPAgent:
         query_lower = query.lower()
         
         if "cpf" in query_lower or len(query.replace(".", "").replace("-", "").replace(" ", "")) == 11:
-            return "patient_by_cpf"
+            return "get_patient_by_cpf"
         elif "rg" in query_lower:
-            return "patient_by_rg"
+            return "get_patient_by_rg"
         elif any(char.isalpha() for char in query):
-            return "patient_by_name"
+            return "get_patient_by_name"
         elif query.isdigit():
-            return "patient_by_id"
+            return "get_patient_by_id"
         
         # Default para busca por nome
-        return "patient_by_name"
+        return "get_patient_by_name"
     
     def _execute_tool(self, tool_name: str, arguments: Dict[str, Any]) -> Any:
         """Executa uma ferramenta específica do MCP."""

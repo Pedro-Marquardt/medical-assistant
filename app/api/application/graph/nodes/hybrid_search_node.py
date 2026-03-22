@@ -117,8 +117,24 @@ class HybridSearchNode:
                 # Extrai o valor de busca da query
                 search_value = self._extract_search_value(query, search_tool)
                 
+                log.info(f"🔹 Tool: {search_tool}, Value: '{search_value}'")
+                
+                # Monta argumentos corretos baseados na ferramenta
+                if search_tool == "get_patient_by_cpf":
+                    arguments = {"cpf": search_value}
+                elif search_tool == "get_patient_by_rg":
+                    arguments = {"rg": search_value}
+                elif search_tool == "get_patient_by_name":
+                    arguments = {"nome": search_value}
+                elif search_tool == "get_patient_by_id":
+                    arguments = {"id": search_value}
+                else:
+                    arguments = {"query": search_value}
+                
+                log.info(f"🔹 Arguments: {arguments}")
+                
                 # Chama a ferramenta MCP adequada
-                result = self.mcp_client.call_tool(search_tool, {"query": search_value})
+                result = self.mcp_client.call_tool(search_tool, arguments)
                 
                 # Log do resultado MCP
                 log.info(f"🔹 Resultado MCP: {result}")
@@ -143,34 +159,34 @@ class HybridSearchNode:
         query_lower = query.lower()
         
         if "cpf" in query_lower:
-            return "patient_by_cpf"
+            return "get_patient_by_cpf"
         elif "rg" in query_lower:
-            return "patient_by_rg"
+            return "get_patient_by_rg"
         elif any(char.isalpha() for char in query):
-            return "patient_by_name"
+            return "get_patient_by_name"
         elif query.strip().isdigit():
-            return "patient_by_id"
+            return "get_patient_by_id"
         
         # Default para busca por nome
-        return "patient_by_name"
+        return "get_patient_by_name"
     
     def _extract_search_value(self, query: str, search_tool: str) -> str:
         """Extrai o valor de busca da query baseado no tipo de ferramenta."""
         import re
         
-        if search_tool == "patient_by_cpf":
+        if search_tool == "get_patient_by_cpf":
             # Extrai CPF da query
             cpf_match = re.search(r'\b\d{3}\.?\d{3}\.?\d{3}[-\.]?\d{2}\b', query)
             if cpf_match:
                 return cpf_match.group()
         
-        elif search_tool == "patient_by_rg":
+        elif search_tool == "get_patient_by_rg":
             # Extrai RG da query
             rg_match = re.search(r'\b[A-Z]{2}[-\.]?\d{2}\.?\d{3}\.?\d{3}\b|\b\d{2}\.?\d{3}\.?\d{3}[-\.]?[A-Z]{1,2}\b', query)
             if rg_match:
                 return rg_match.group()
         
-        elif search_tool == "patient_by_name":
+        elif search_tool == "get_patient_by_name":
             # Extrai nome da query
             name_match = re.search(r'\bpaciente\s+([A-Z][a-zçãõáéíóúâêîôûàèìòù]+(?:\s+[A-Z][a-zçãõáéíóúâêîôûàèìòù]+)*)', query, re.IGNORECASE)
             if name_match:

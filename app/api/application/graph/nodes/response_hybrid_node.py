@@ -130,27 +130,18 @@ RESPOSTA:
         Args:
             query: Consulta original do usuário
             protocols: Lista de protocolos encontrados
-            patient_data: Dados do paciente (obrigatório para híbrido)
+            patient_data: Dados do paciente
             search_type: Tipo de busca realizada
             
         Yields:
             str: Chunks da resposta em streaming
         """
         try:
-            # Prepara contexto do paciente (mais detalhado para híbrido)
-            patient_context = self._format_detailed_patient_context(patient_data)
+            # Prepara contexto do paciente (genérico)
+            patient_context = self._format_patient_context(patient_data)
             
-            # Prepara contexto dos protocolos
+            # Prepara contexto dos protocolos (genérico)
             protocols_context = self._format_protocols_context(protocols)
-            
-            # Logs detalhados para debugging
-            log.info("\n=== DEBUGGING RESPONSE HYBRID ===")
-            log.info(f"🔹 Query original: '{query}'")
-            log.info(f"🔹 Search type: {search_type}")
-            log.info(f"🔹 Protocolos recebidos: {len(protocols)}")
-            log.info(f"🔹 Patient data: {patient_data}")
-            log.info(f"🔹 Patient context formatado: '{patient_context}'")
-            log.info(f"🔹 Protocols context: '{protocols_context}'")
             
             # Gera prompt
             prompt = self.prompt_template.format(
@@ -171,62 +162,41 @@ RESPOSTA:
             log.error(f"Erro no streaming de resposta híbrida: {e}")
             yield from self._generate_fallback_stream()
     
-    def _format_detailed_patient_context(self, patient_data: Dict[str, Any]) -> str:
-        """Formata contexto detalhado do paciente para resposta híbrida."""
+    def _format_patient_context(self, patient_data: Dict[str, Any]) -> str:
+        """Formata contexto do paciente de forma genérica."""
         
         if not patient_data:
-            return "CONTEXTO DO PACIENTE:\n⚠️ Dados de paciente não disponíveis - resposta será limitada a orientações gerais."
+            return "CONTEXTO DO PACIENTE:\n⚠️ Dados de paciente não disponíveis."
         
-        context = ["CONTEXTO DO PACIENTE:"]
-        
-        if patient_data.get("found"):
-            context.append("✅ Paciente identificado no sistema hospitalar")
-            context.append("📊 Dados disponíveis para contextualização:")
-            
-            # Adiciona informações estruturadas do paciente (sem dados sensíveis)
-            if patient_data.get("age_group"):
-                context.append(f"   - Faixa etária: {patient_data.get('age_group')}")
-            
-            if patient_data.get("has_allergies"):
-                context.append("   - Registro de alergias: Presente (detalhes omitidos por segurança)")
-            
-            if patient_data.get("chronic_conditions"):
-                context.append("   - Condições crônicas: Registradas (detalhes omitidos por segurança)")
-            
-            if patient_data.get("recent_visits"):
-                context.append(f"   - Consultas recentes: {patient_data.get('recent_visits')} nos últimos 6 meses")
-            
-            context.append("⚠️ Informações completas disponíveis para análise contextualizada")
+        if patient_data.get("found") and patient_data.get("data", {}).get("content"):
+            # Passa o conteúdo diretamente do MCP
+            content = patient_data["data"]["content"]
+            return f"CONTEXTO DO PACIENTE:\n{content}"
         else:
-            context.append("❌ Paciente não encontrado no sistema")
-            context.append("ℹ️ Resposta baseada apenas em protocolos gerais")
-        
-        return "\n".join(context)
+            return "CONTEXTO DO PACIENTE:\n❌ Paciente não encontrado no sistema."
     
     def _format_protocols_context(self, protocols: List[Dict[str, Any]]) -> str:
-        """Formata contexto dos protocolos para resposta híbrida."""
+        """Formata contexto dos protocolos de forma genérica."""
         
         if not protocols:
-            return "Nenhum protocolo específico encontrado. Responda com orientações gerais e recomende consulta médica urgente."
+            return "Nenhum protocolo específico encontrado."
         
         context = []
         
         for i, protocol in enumerate(protocols, 1):
             content = protocol.get("content", "")
             source = protocol.get("source", "Fonte não identificada")
-            score = protocol.get("score", 0.0)
             
             context.append(f"PROTOCOLO {i}:")
-            context.append(f"Conteúdo: {content[:600]}...")  # Mais conteúdo para análise híbrida
+            context.append(f"Conteúdo: {content}")
             context.append(f"Fonte: {source}")
-            context.append(f"Relevância: {score:.2f}")
             context.append("---")
         
         return "\n".join(context)
     
     def _has_patient_data(self, patient_data: Dict[str, Any]) -> bool:
-        """Verifica se há dados válidos do paciente."""
-        return patient_data is not None and patient_data.get("found", False)
+        """Verifica se há dados do paciente de forma genérica."""
+        return patient_data is not None
     
     def _generate_fallback_stream(self) -> Generator[str, None, None]:
         """Gera resposta padrão em streaming para casos de erro."""

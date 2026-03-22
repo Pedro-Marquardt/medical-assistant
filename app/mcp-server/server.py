@@ -1,6 +1,6 @@
 """
 Servidor MCP para gerenciamento de dados de pacientes médicos.
-Implementa Server-Sent Events (SSE) via HTTP usando o protocolo MCP.
+Implementa HTTP simples usando o protocolo MCP, similar ao StreamableHTTPServerTransport do Node.js.
 """
 
 import asyncio
@@ -12,7 +12,6 @@ import uvicorn
 from fastapi import FastAPI
 from starlette.requests import Request
 from mcp.server import Server
-from mcp.server.sse import SseServerTransport
 from mcp.types import (
     Tool,
     TextContent,
@@ -47,26 +46,102 @@ logging.basicConfig(
 )
 logger = logging.getLogger(__name__)
 
+# Cria a aplicação FastAPI
+app = FastAPI(
+    title="Medical Patient MCP Server",
+    description="Servidor MCP para gerenciamento de dados de pacientes médicos",
+    version="1.0.0"
+)
 
-# Cria o servidor MCP
-server = Server("medical-patient-server")
+@app.post("/mcp")
+async def mcp_endpoint(request: Request):
+    """Endpoint MCP principal - similar ao Node.js StreamableHTTPServerTransport."""
+    try:
+        # Obtém o payload JSON-RPC
+        payload = await request.json()
+        
+        # Cria uma nova instância do servidor para cada request (sem estado)
+        request_server = Server("medical-patient-server")
+        
+        # Registra as ferramentas dinamicamente
+        @request_server.list_tools()
+        async def list_tools() -> List[Tool]:
+            tools = [
+                get_patient_by_name_tool(),
+                get_patient_by_cpf_tool(),
+                get_patient_by_rg_tool(),
+                get_patient_by_id_tool()
+            ]
+            return tools
+        
+        @request_server.call_tool()
+        async def call_tool(name: str, arguments: Dict[str, Any]) -> Sequence[TextContent]:
+            return await handle_tool_call(name, arguments)
+        
+        # Processa a requisição JSON-RPC
+        method = payload.get("method")
+        params = payload.get("params", {})
+        request_id = payload.get("id", 1)
+        
+        if method == "tools/list":
+            tools = await list_tools()
+            tools_dict = []
+            for tool in tools:
+                tools_dict.append({
+                    "name": tool.name,
+                    "description": tool.description,
+                    "inputSchema": tool.inputSchema
+                })
+            
+            return {
+                "jsonrpc": "2.0",
+                "id": request_id,
+                "result": {"tools": tools_dict}
+            }
+        
+        elif method == "tools/call":
+            tool_name = params.get("name")
+            arguments = params.get("arguments", {})
+            
+            if not tool_name:
+                return {
+                    "jsonrpc": "2.0",
+                    "id": request_id,
+                    "error": {"code": -32602, "message": "Tool name is required"}
+                }
+            
+            result = await handle_tool_call(tool_name, arguments)
+            
+            # Converte TextContent para formato esperado
+            content = []
+            for text_content in result:
+                content.append({
+                    "type": text_content.type,
+                    "text": text_content.text
+                })
+            
+            return {
+                "jsonrpc": "2.0",
+                "id": request_id,
+                "result": {"content": content}
+            }
+        
+        else:
+            return {
+                "jsonrpc": "2.0",
+                "id": request_id,
+                "error": {"code": -32601, "message": f"Method '{method}' not found"}
+            }
+            
+    except Exception as e:
+        logger.error(f"Error processing MCP request: {e}", exc_info=True)
+        return {
+            "jsonrpc": "2.0",
+            "id": payload.get("id", 1) if 'payload' in locals() else 1,
+            "error": {"code": -32603, "message": str(e)}
+        }
 
-
-@server.list_tools()
-async def list_tools() -> List[Tool]:
-    """Lista todas as ferramentas disponíveis."""
-    tools = [
-        get_patient_by_name_tool(),
-        get_patient_by_cpf_tool(),
-        get_patient_by_rg_tool(),
-        get_patient_by_id_tool()
-    ]
-    logger.info(f"Listando {len(tools)} ferramentas disponíveis")
-    return tools
-
-
-@server.call_tool()
-async def call_tool(name: str, arguments: Dict[str, Any]) -> Sequence[TextContent]:
+async def handle_tool_call(name: str, arguments: Dict[str, Any]) -> Sequence[TextContent]:
     """Executa uma ferramenta específica."""
     try:
         logger.info(f"Executando ferramenta: {name} com argumentos: {arguments}")
@@ -114,32 +189,6 @@ async def call_tool(name: str, arguments: Dict[str, Any]) -> Sequence[TextConten
         return [TextContent(type="text", text=f"❌ {error_message}")]
 
 
-# Cria a aplicação FastAPI
-app = FastAPI(
-    title="Medical Patient MCP Server",
-    description="Servidor MCP para gerenciamento de dados de pacientes médicos",
-    version="1.0.0"
-)
-
-# Inicializa o transporte SSE definindo a rota onde as MENSAGENS serão recebidas
-sse = SseServerTransport("/messages")
-
-async def handle_sse(request: Request):
-    """Endpoint GET para estabelecer a conexão Server-Sent Events."""
-    async with sse.connect_sse(request.scope, request.receive, request._send) as streams:
-        # Conecta os streams do transporte ao servidor MCP
-        await server.run(streams[0], streams[1], server.create_initialization_options())
-
-async def handle_messages(request: Request):
-    """Endpoint POST para receber as mensagens/chamadas de tools."""
-    await sse.handle_post_message(request.scope, request.receive, request._send)
-
-
-# Registra as rotas no FastAPI (usando add_route para acessar o ASGI cru, que o MCP exige)
-app.add_route("/sse", handle_sse, methods=["GET"])
-app.add_route("/messages", handle_messages, methods=["POST"])
-
-
 @app.get("/")
 async def root():
     """Endpoint raiz com informações do servidor."""
@@ -148,8 +197,7 @@ async def root():
         "version": "1.0.0",
         "description": "Servidor MCP para gerenciamento de dados de pacientes médicos",
         "endpoints": {
-            "sse": "/sse - GET endpoint para estabelecer conexão SSE",
-            "messages": "/messages - POST endpoint para enviar mensagens",
+            "mcp": "/mcp - POST endpoint para requisições MCP (JSON-RPC)",
             "tools": "/tools - GET endpoint para listar ferramentas detalhadas",
             "health": "/health - Endpoint de saúde do servidor"
         },
@@ -199,8 +247,9 @@ def main():
     logger.info("  - get_patient_by_rg: Busca paciente por RG")
     logger.info("  - get_patient_by_id: Busca paciente por ID")
     logger.info("Endpoints disponíveis:")
-    logger.info("  - GET /sse: Estabelece conexão SSE")
-    logger.info("  - POST /messages: Recebe mensagens MCP")
+    logger.info("  - POST /mcp: Endpoint principal MCP (JSON-RPC)")
+    logger.info("  - GET /tools: Lista ferramentas disponíveis")
+    logger.info("  - GET /health: Verificação de saúde")
     
     uvicorn.run(
         app,
