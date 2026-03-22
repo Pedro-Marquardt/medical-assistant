@@ -22,6 +22,9 @@ class ConfigEnvs:
     # Embeddings Configuration
     EMBEDDING_MODEL = os.getenv("EMBEDDING_MODEL", "bge-m3")
     
+    # LLM Configuration
+    LLM_MODEL = os.getenv("LLM_MODEL", "llama3.1")
+    
     # Logging Configuration
     LOG_LEVEL = os.getenv("LOG_LEVEL", "INFO")
 

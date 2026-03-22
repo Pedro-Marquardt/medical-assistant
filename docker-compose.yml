@@ -26,6 +26,7 @@ services:
       - CHROMA_PORT=8000
       - MCP_HOST=mcp-server
       - MCP_PORT=8000
+      - HOST_OLLAMA=http://host.docker.internal:11434
     depends_on:
       - chroma
       - mcp-server
