@@ -6,16 +6,35 @@ Durante o desenvolvimento deste projeto, realizamos o treinamento de um modelo d
 
 ---
 
-## 🏗️ Decisão Arquitetural: O uso do modelo treinado
+## 🏗️ Arquitetura do Sistema
 
-Embora o *fine-tuning* tenha sido realizado e validado com sucesso, **optamos por não utilizar o modelo treinado na aplicação que utiliza os grafos deste projeto.**
+O assistente médico implementa uma arquitetura inteligente baseada em **RAG (Retrieval-Augmented Generation)** com **roteamento semântico adaptativo** para otimizar custos e performance.
 
-**Por quê?**
-Por questões de processamento e flexibilidade da arquitetura. Ao passar pelo *fine-tuning* focado estritamente no formato de instrução direta (Text-to-Text), o modelo tornou-se "pequeno" e excessivamente especializado. 
+### 🔄 Roteador Âncora Semântica
 
-A nossa arquitetura final desejada exige capacidades avançadas de *Retrieval-Augmented Generation* (RAG) e *Tool Calling* para consultar sistemas e documentos dinâmicos do hospital em tempo real. Testes empíricos demonstraram que o modelo base puro possui maior "fôlego cognitivo" para ler grandes blocos de contexto injetados via RAG sem sofrer de vício de formato (*overfitting* de prompt). 
+O sistema utiliza um **roteador semântico** que analisa a similaridade das consultas para decidir qual estratégia de busca usar:
 
-O modelo treinado foi mantido no projeto como um artefato de pesquisa e para demonstração da técnica de aprendizado de máquina.
+- **🎯 Threshold Inteligente**: Consultas com similaridade **> 0.5** ativam busca híbrida (RAG + MCP)
+- **💡 Economia de Recursos**: Consultas com similaridade **≤ 0.5** usam apenas RAG vetorial
+- **⚡ Otimização Automática**: Reduz requests desnecessários ao MCP Server e economiza tokens
+
+### 🔍 Estratégias de Busca
+
+1. **Busca Híbrida** (Alta similaridade):
+   - **RAG**: Busca vetorial em protocolos médicos (ChromaDB)
+   - **MCP**: Consulta dados específicos de pacientes via Model Context Protocol
+   - **Integração**: Resposta personalizada combinando protocolo + contexto do paciente
+
+2. **Busca Vetorial** (Baixa similaridade):
+   - **RAG Puro**: Consulta apenas protocolos médicos gerais
+   - **Performance**: Resposta rápida sem overhead de consultas externas
+   - **Eficiência**: Ideal para perguntas genéricas sobre protocolos
+
+### 🧠 Inteligência do Sistema
+
+- **Análise Semântica**: Identifica automaticamente se a consulta refere-se a um paciente específico
+- **Contexto Dinâmico**: Adapta a resposta baseada nos dados disponíveis
+- **Guardrails Médicos**: Sempre mantém diretrizes de segurança independente da estratégia
 
 ---
 
@@ -34,18 +53,20 @@ A pasta `/app` contém toda a arquitetura do sistema de assistente médico, orga
 #### **📋 Componentes Principais:**
 
 1. **`/app/api/`** - **API Principal (FastAPI)**
-   - Arquitetura em camadas com injeção de dependências
-   - **LangGraph** para orquestração de workflows médicos
-   - **RAG (Retrieval-Augmented Generation)** com ChromaDB
-   - **Streaming em tempo real** de respostas médicas
-   - **Guardrails de segurança** (nunca prescreve medicamentos)
-   - **Roteamento semântico** inteligente (hybrid vs vector search)
+   - **LangGraph** para orquestração de workflows médicos inteligentes
+   - **Roteador Semântico**: Decisão automática entre busca híbrida ou vetorial
+   - **RAG (Retrieval-Augmented Generation)** com ChromaDB para protocolos
+   - **MCP Integration**: Consulta dinâmica de dados de pacientes quando necessário
+   - **Streaming em tempo real** de respostas médicas personalizadas
+   - **Guardrails de segurança** médicos (nunca prescreve medicamentos)
+   - **Otimização de custos**: Threshold inteligente para economizar requests
 
 2. **`/app/mcp-server/`** - **MCP Server (Model Context Protocol)**
-   - Servidor especializado em dados de pacientes
-   - **Ferramentas MCP** para busca por CPF, RG, nome e ID
-   - **Mock database** com dados sintéticos de pacientes
-   - **API REST** para integração com o assistente médico
+   - Servidor especializado em dados específicos de pacientes
+   - **Ferramentas MCP**: Busca por CPF, RG, nome e ID de pacientes
+   - **Ativação condicional**: Consultado apenas quando threshold semântico é atingido
+   - **Mock database** com dados sintéticos realistas de pacientes
+   - **API REST** otimizada para integração com roteador semântico
 
 #### **🔗 Integração dos Serviços:**
 
@@ -98,27 +119,26 @@ docker-compose ps
 - **🔍 MCP Server**: http://localhost:8000/ (ferramentas de pacientes)
 - **🗄️ ChromaDB**: http://localhost:8001/ (base vetorial)
 
-### 🧪 Testando os endpoints médicos
+### 🧪 Testando o Roteador Semântico
 
-**Consulta completa (JSON estruturado):**
+**Busca Híbrida (ativará MCP + RAG):**
 ```bash
 curl -X POST "http://localhost:3030/medical/query/complete" \
   -H "Content-Type: application/json" \
   -d '{
-    "query": "Quais protocolos para dor torácica?",
+    "query": "Qual o histórico do paciente João da Silva?",
     "user_id": "medico_001"
   }'
 ```
 
-**Consulta com streaming:**
+**Busca Vetorial (apenas RAG):**
 ```bash
-curl -X POST "http://localhost:3030/medical/query" \
+curl -X POST "http://localhost:3030/medical/query/complete" \
   -H "Content-Type: application/json" \
   -d '{
-    "query": "Como proceder com choque anafilático?",
+    "query": "Quais são os protocolos para hipertensão?",
     "user_id": "enfermeiro_001"
-  }' \
-  --no-buffer
+  }'
 ```
 
 ### 🔧 Comandos úteis para desenvolvimento
@@ -187,14 +207,25 @@ docker-compose restart api
 ```mermaid
 graph LR
     A[User Query] --> B[API FastAPI]
-    B --> C[Semantic Router]
-    C --> D[Vector Search ChromaDB]
-    C --> E[MCP Agent Patient Data]
-    D --> F[Response Generator]
-    E --> F
-    F --> G[Ollama LLM]
-    G --> H[Streaming Response]
+    B --> C[Roteador Semântico]
+    C --> D{Similaridade > 0.5?}
+    D -->|Sim| E[Busca Híbrida]
+    D -->|Não| F[Busca Vetorial]
+    E --> G[RAG ChromaDB]
+    E --> H[MCP Agent Pacientes]
+    F --> G
+    G --> I[Response Generator]
+    H --> I
+    I --> J[Ollama LLM]
+    J --> K[Streaming Response]
 ```
+
+**Fluxo Detalhado:**
+1. **Query Analysis**: Roteador analisa similaridade semântica com padrões conhecidos
+2. **Threshold Decision**: Se similaridade > 0.5 → Busca Híbrida, senão → RAG Puro  
+3. **Resource Optimization**: Economiza requests ao MCP e tokens do LLM
+4. **Context Integration**: Combina protocolos + dados do paciente (quando aplicável)
+5. **Intelligent Response**: Resposta personalizada via streaming
 
 ---
 
