@@ -7,9 +7,9 @@ load_dotenv()
 class ConfigEnvs:
     """Configurações de ambiente para a aplicação."""
     
-    # ChromaDB Configuration
+    # ChromaDB Configuration  
     HOST_CHROMA_DB = os.getenv("CHROMA_HOST", "localhost")
-    CHROMA_PORT = int(os.getenv("CHROMA_PORT", "8001"))
+    CHROMA_PORT = int(os.getenv("CHROMA_PORT", "8000"))
     CHROMA_COLLECTION = os.getenv("CHROMA_COLLECTION", "hospital_protocols")
     
     # Ollama Configuration

@@ -11,7 +11,13 @@ class ChromaDatabase(ChromaDatabaseInterface):
             port=ConfigEnvs.CHROMA_PORT
         )
         
-        self.embeddings = OllamaEmbeddings(model=ConfigEnvs.EMBEDDING_MODEL)
+        # Usar host.docker.internal para acessar Ollama do container
+        ollama_host = "http://host.docker.internal:11434" if ConfigEnvs.HOST_OLLAMA == "http://localhost:11434" else ConfigEnvs.HOST_OLLAMA
+        
+        self.embeddings = OllamaEmbeddings(
+            model=ConfigEnvs.EMBEDDING_MODEL,
+            base_url=ollama_host
+        )
         
         self.vector_store = Chroma(
             client=self.client,

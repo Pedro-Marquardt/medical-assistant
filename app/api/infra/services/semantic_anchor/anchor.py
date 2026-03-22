@@ -43,6 +43,7 @@ class SemanticAnchor:
     
     def route(self, query: str, threshold: float = 0.6) -> str:
         if not self._initialized:
+            log.warning("Router não inicializado, usando vector_search")
             return "vector_search"
         
         try:
@@ -52,12 +53,27 @@ class SemanticAnchor:
             # Compara com âncoras de paciente
             similarities = cosine_similarity(query_vector, self.anchor_vectors)[0]
             max_similarity = np.max(similarities)
+            best_pattern_idx = np.argmax(similarities)
+            
+            # Log detalhado das similaridades
+            patient_anchors = query_normalizer.get_intent_patterns()
+            log.info(f"\n--- ANÁLISE SEMÂNTICA ---")
+            log.info(f"Query original: '{query}'")
+            log.info(f"Query normalizada: '{query_normalizer.normalize(query)}'")
+            log.info(f"Melhor padrão ({max_similarity:.3f}): '{patient_anchors[best_pattern_idx]}'")
+            log.info(f"Threshold usado: {threshold}")
+            
+            # Log top 3 similaridades
+            top_3_indices = np.argsort(similarities)[-3:][::-1]
+            log.info("Top 3 similaridades:")
+            for i, idx in enumerate(top_3_indices):
+                log.info(f"  {i+1}. {similarities[idx]:.3f} - '{patient_anchors[idx]}'")
             
             if max_similarity > threshold:
-                log.info(f"Query: '{query}' -> hybrid_search (sim: {max_similarity:.3f})")
+                log.info(f"✅ DECISÃO: hybrid_search (similaridade {max_similarity:.3f} > {threshold})")
                 return "hybrid_search"  # Precisa buscar paciente no MCP
             else:
-                log.info(f"Query: '{query}' -> vector_search (sim: {max_similarity:.3f})")
+                log.info(f"❌ DECISÃO: vector_search (similaridade {max_similarity:.3f} <= {threshold})")
                 return "vector_search"   
                 
         except Exception as e:

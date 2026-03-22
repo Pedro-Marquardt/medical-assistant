@@ -1,18 +1,18 @@
 import asyncio
 from typing import Dict, Any, List, Tuple
 from concurrent.futures import ThreadPoolExecutor, as_completed
-from api.application.agents.mcp_agent import MCPAgent
+from api.infra.services.mcp.client import MCPClient
 from api.infra.database.chroma.connection import ChromaDatabase
 from api.infra.utils.logger import log
 
 class HybridSearchNode:
     """
     Nó responsável por executar busca híbrida paralela.
-    Combina busca de pacientes via MCP Agent + busca de protocolos via ChromaDB.
+    Combina busca de pacientes via MCP Client + busca de protocolos via ChromaDB.
     """
     
-    def __init__(self, mcp_agent: MCPAgent, chroma_db: ChromaDatabase):
-        self.mcp_agent = mcp_agent
+    def __init__(self, mcp_client: MCPClient, chroma_db: ChromaDatabase):
+        self.mcp_client = mcp_client
         self.chroma_db = chroma_db
     
     def execute(self, state: Dict[str, Any]) -> Dict[str, Any]:
@@ -50,57 +50,53 @@ class HybridSearchNode:
         except Exception as e:
             log.error(f"Erro na busca híbrida: {e}")
             
-            # Fallback em caso de erro
+            # Fallback com estado seguro
             state.update({
                 "patient_data": None,
                 "protocols": [],
                 "hybrid_search_completed": False,
-                "search_error": str(e)
+                "hybrid_search_error": str(e)
             })
             
             return state
     
     def _parallel_search(self, query: str) -> Tuple[Dict[str, Any], List[Dict[str, Any]]]:
         """
-        Executa buscas MCP e ChromaDB em paralelo usando ThreadPoolExecutor.
+        Executa busca paralela usando ThreadPoolExecutor.
         
         Args:
             query: Query do usuário
             
         Returns:
-            Tuple: (dados_paciente, protocolos)
+            Tuple: (dados_paciente, lista_protocolos)
         """
         patient_data = None
         protocols = []
         
-        # 🔥 EXECUÇÃO PARALELA COM ThreadPoolExecutor
-        with ThreadPoolExecutor(max_workers=2) as executor:
-            
-            # Submete ambas as tarefas simultaneamente
-            mcp_future = executor.submit(self._search_patient, query)
-            vector_future = executor.submit(self._search_protocols, query)
-            
-            # Coleta resultados conforme completam
-            for future in as_completed([mcp_future, vector_future], timeout=30):
-                try:
-                    if future == mcp_future:
-                        patient_data = future.result()
+        try:
+            # 🚀 Execução paralela com ThreadPoolExecutor
+            with ThreadPoolExecutor(max_workers=2, thread_name_prefix="HybridSearch") as executor:
+                # Submit both tasks
+                future_patient = executor.submit(self._search_patient, query)
+                future_protocols = executor.submit(self._search_protocols, query)
+                
+                # Process completed futures as they finish
+                for future in as_completed([future_patient, future_protocols], timeout=30):
+                    if future == future_patient:
                         log.info("✅ Busca MCP concluída")
-                    elif future == vector_future:
-                        protocols = future.result()
+                        patient_data = future.result()
+                    elif future == future_protocols:
                         log.info("✅ Busca vetorial concluída")
-                        
-                except Exception as e:
-                    if future == mcp_future:
-                        log.error(f"Erro na busca MCP: {e}")
-                    else:
-                        log.error(f"Erro na busca vetorial: {e}")
-        
+                        protocols = future.result() or []
+            
+        except Exception as e:
+            log.error(f"Erro na execução paralela: {e}")
+            
         return patient_data, protocols
     
     def _search_patient(self, query: str) -> Dict[str, Any]:
         """
-        Busca informações de paciente via MCP Agent.
+        Busca paciente via MCP Client.
         
         Args:
             query: Query do usuário
@@ -111,22 +107,78 @@ class HybridSearchNode:
         try:
             log.info("🔍 Iniciando busca de paciente via MCP Agent")
             
-            # Usa o MCP Agent para buscar paciente
-            result = self.mcp_agent.execute(query)
+            # Log da query original
+            log.info(f"🔹 Query para MCP: '{query}'")
             
-            if result and "erro" not in result.lower():
-                return {
-                    "found": True,
-                    "data": result,
-                    "source": "mcp_agent"
-                }
-            else:
-                return None
+            # Detecta tipo de busca baseado na query
+            search_tool = self._detect_search_tool(query)
+            
+            if search_tool:
+                # Extrai o valor de busca da query
+                search_value = self._extract_search_value(query, search_tool)
+                
+                # Chama a ferramenta MCP adequada
+                result = self.mcp_client.call_tool(search_tool, {"query": search_value})
+                
+                # Log do resultado MCP
+                log.info(f"🔹 Resultado MCP: {result}")
+                
+                if result and not isinstance(result, str) or "erro" not in str(result).lower():
+                    log.info("✅ Paciente encontrado via MCP")
+                    return {
+                        "found": True,
+                        "data": result,
+                        "source": "mcp_client"
+                    }
+            
+            log.info("❌ Paciente não encontrado via MCP")
+            return None
                 
         except Exception as e:
             log.error(f"Erro na busca de paciente: {e}")
             return None
     
+    def _detect_search_tool(self, query: str) -> str:
+        """Detecta qual ferramenta MCP usar baseada na query."""
+        query_lower = query.lower()
+        
+        if "cpf" in query_lower:
+            return "patient_by_cpf"
+        elif "rg" in query_lower:
+            return "patient_by_rg"
+        elif any(char.isalpha() for char in query):
+            return "patient_by_name"
+        elif query.strip().isdigit():
+            return "patient_by_id"
+        
+        # Default para busca por nome
+        return "patient_by_name"
+    
+    def _extract_search_value(self, query: str, search_tool: str) -> str:
+        """Extrai o valor de busca da query baseado no tipo de ferramenta."""
+        import re
+        
+        if search_tool == "patient_by_cpf":
+            # Extrai CPF da query
+            cpf_match = re.search(r'\b\d{3}\.?\d{3}\.?\d{3}[-\.]?\d{2}\b', query)
+            if cpf_match:
+                return cpf_match.group()
+        
+        elif search_tool == "patient_by_rg":
+            # Extrai RG da query
+            rg_match = re.search(r'\b[A-Z]{2}[-\.]?\d{2}\.?\d{3}\.?\d{3}\b|\b\d{2}\.?\d{3}\.?\d{3}[-\.]?[A-Z]{1,2}\b', query)
+            if rg_match:
+                return rg_match.group()
+        
+        elif search_tool == "patient_by_name":
+            # Extrai nome da query
+            name_match = re.search(r'\bpaciente\s+([A-Z][a-zçãõáéíóúâêîôûàèìòù]+(?:\s+[A-Z][a-zçãõáéíóúâêîôûàèìòù]+)*)', query, re.IGNORECASE)
+            if name_match:
+                return name_match.group(1)
+        
+        # Fallback: retorna a query original
+        return query
+
     def _search_protocols(self, query: str) -> List[Dict[str, Any]]:
         """
         Busca protocolos médicos via ChromaDB.
@@ -140,25 +192,30 @@ class HybridSearchNode:
         try:
             log.info("📋 Iniciando busca de protocolos via ChromaDB")
             
-            # Busca protocolos relevantes no ChromaDB
-            results = self.chroma_db.search(
-                query_text=query,
-                limit=5,
-                threshold=0.7
-            )
+            # Log da query
+            log.info(f"🔹 Query para ChromaDB: '{query}'")
+            
+            # Usa o retriever do ChromaDB
+            retriever = self.chroma_db.get_retriever(k=5)
+            results = retriever.invoke(query)
+            
+            # Log dos resultados
+            log.info(f"🔹 Resultados ChromaDB: {len(results)} documentos encontrados")
             
             if results:
                 protocols = []
-                for result in results:
+                for i, doc in enumerate(results):
                     protocols.append({
-                        "content": result.get("content", ""),
-                        "metadata": result.get("metadata", {}),
-                        "score": result.get("score", 0.0),
-                        "source": result.get("source", ""),
-                        "source": "chromadb"
+                        "content": doc.page_content,
+                        "metadata": doc.metadata,
+                        "source": "chromadb",
+                        "rank": i + 1
                     })
+                    log.info(f"  📄 Doc {i+1}: {doc.metadata.get('source', 'N/A')} - {doc.page_content[:100]}...")
+                
                 return protocols
             else:
+                log.info("❌ Nenhum protocolo encontrado no ChromaDB")
                 return []
                 
         except Exception as e:
@@ -166,107 +223,25 @@ class HybridSearchNode:
             return []
     
     def health_check(self) -> Dict[str, Any]:
-        """
-        Health check do nó híbrido.
-        
-        Returns:
-            Dict: Status dos componentes
-        """
+        """Verifica saúde do nó híbrido."""
         try:
-            mcp_status = self.mcp_agent.health_check()
-            chroma_status = self.chroma_db.health_check() if hasattr(self.chroma_db, 'health_check') else {"status": "unknown"}
+            # Testa conectividade MCP
+            mcp_tools = self.mcp_client.list_tools()
+            
+            # Testa conectividade ChromaDB
+            chroma_client = self.chroma_db.get_client()
             
             return {
-                "hybrid_search_node": "healthy",
-                "mcp_agent": mcp_status.get("status", "unknown"),
-                "chromadb": chroma_status.get("status", "unknown"),
-                "parallel_execution": "enabled"
+                "status": "healthy",
+                "mcp_connection": "active",
+                "mcp_tools_available": len(mcp_tools),
+                "chroma_connection": "active",
+                "vector_store": "ready"
             }
-            
         except Exception as e:
             return {
-                "hybrid_search_node": "error",
+                "status": "unhealthy",
                 "error": str(e),
-                "parallel_execution": "disabled"
+                "mcp_connection": "failed",
+                "chroma_connection": "failed"
             }
-
-# Versão assíncrona alternativa (se preferir async/await)
-class AsyncHybridSearchNode:
-    """Versão assíncrona do HybridSearchNode."""
-    
-    def __init__(self, mcp_agent: MCPAgent, chroma_db: ChromaDatabase):
-        self.mcp_agent = mcp_agent
-        self.chroma_db = chroma_db
-    
-    async def execute(self, state: Dict[str, Any]) -> Dict[str, Any]:
-        """Executa busca híbrida assíncrona."""
-        try:
-            query = state.get("query", "")
-            
-            log.info("Iniciando busca híbrida assíncrona")
-            
-            # 🚀 EXECUÇÃO ASSÍNCRONA PARALELA
-            patient_task = asyncio.create_task(self._async_search_patient(query))
-            protocol_task = asyncio.create_task(self._async_search_protocols(query))
-            
-            # Aguarda ambas as tarefas
-            patient_data, protocols = await asyncio.gather(
-                patient_task, 
-                protocol_task, 
-                return_exceptions=True
-            )
-            
-            # Trata exceções
-            if isinstance(patient_data, Exception):
-                log.error(f"Erro na busca MCP: {patient_data}")
-                patient_data = None
-                
-            if isinstance(protocols, Exception):
-                log.error(f"Erro na busca vetorial: {protocols}")
-                protocols = []
-            
-            state.update({
-                "patient_data": patient_data,
-                "protocols": protocols,
-                "hybrid_search_completed": True
-            })
-            
-            return state
-            
-        except Exception as e:
-            log.error(f"Erro na busca híbrida assíncrona: {e}")
-            state.update({
-                "patient_data": None,
-                "protocols": [],
-                "hybrid_search_completed": False,
-                "search_error": str(e)
-            })
-            return state
-    
-    async def _async_search_patient(self, query: str) -> Dict[str, Any]:
-        """Busca assíncrona de paciente."""
-        loop = asyncio.get_event_loop()
-        return await loop.run_in_executor(None, self._search_patient, query)
-    
-    async def _async_search_protocols(self, query: str) -> List[Dict[str, Any]]:
-        """Busca assíncrona de protocolos."""
-        loop = asyncio.get_event_loop()
-        return await loop.run_in_executor(None, self._search_protocols, query)
-    
-    def _search_patient(self, query: str) -> Dict[str, Any]:
-        """Método sincronizado para busca de paciente."""
-        try:
-            result = self.mcp_agent.execute(query)
-            if result:
-                return {"found": True, "data": result, "source": "mcp_agent"}
-            return None
-        except Exception:
-            return None
-    
-    def _search_protocols(self, query: str) -> List[Dict[str, Any]]:
-        """Método sincronizado para busca de protocolos."""
-        try:
-            results = self.chroma_db.search(query_text=query, limit=5)
-            return [{"content": r.get("content", ""), "score": r.get("score", 0.0), "source": r.get("source", "")} for r in results]
-        except Exception:
-            return []

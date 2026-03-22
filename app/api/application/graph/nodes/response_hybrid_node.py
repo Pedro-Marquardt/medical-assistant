@@ -143,6 +143,15 @@ RESPOSTA:
             # Prepara contexto dos protocolos
             protocols_context = self._format_protocols_context(protocols)
             
+            # Logs detalhados para debugging
+            log.info("\n=== DEBUGGING RESPONSE HYBRID ===")
+            log.info(f"🔹 Query original: '{query}'")
+            log.info(f"🔹 Search type: {search_type}")
+            log.info(f"🔹 Protocolos recebidos: {len(protocols)}")
+            log.info(f"🔹 Patient data: {patient_data}")
+            log.info(f"🔹 Patient context formatado: '{patient_context}'")
+            log.info(f"🔹 Protocols context: '{protocols_context}'")
+            
             # Gera prompt
             prompt = self.prompt_template.format(
                 query=query,

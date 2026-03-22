@@ -87,8 +87,6 @@ CONTEXTO DA CONSULTA:
 Pergunta: {query}
 Tipo de busca: {search_type}
 
-{patient_context}
-
 PROTOCOLOS ENCONTRADOS:
 {protocols_context}
 
@@ -113,7 +111,7 @@ RESPOSTA:
 """
         
         return PromptTemplate(
-            input_variables=["query", "search_type", "patient_context", "protocols_context"],
+            input_variables=["query", "search_type", "protocols_context"],
             template=template
         )
     
@@ -137,9 +135,6 @@ RESPOSTA:
             str: Chunks da resposta em streaming
         """
         try:
-            # Prepara contexto do paciente
-            patient_context = self._format_patient_context(patient_data)
-            
             # Prepara contexto dos protocolos
             protocols_context = self._format_protocols_context(protocols)
             
@@ -147,7 +142,6 @@ RESPOSTA:
             prompt = self.prompt_template.format(
                 query=query,
                 search_type=search_type,
-                patient_context=patient_context,
                 protocols_context=protocols_context
             )
             
@@ -161,22 +155,6 @@ RESPOSTA:
         except Exception as e:
             log.error(f"Erro na geração de resposta LLM: {e}")
             yield from self._generate_fallback_stream()
-    
-    def _format_patient_context(self, patient_data: Dict[str, Any]) -> str:
-        """Formata contexto do paciente para o prompt."""
-        
-        if not patient_data:
-            return "CONTEXTO DO PACIENTE:\nNenhum dado específico de paciente fornecido."
-        
-        context = ["CONTEXTO DO PACIENTE:"]
-        
-        if patient_data.get("found"):
-            context.append("✅ Dados de paciente encontrados no sistema")
-            context.append("⚠️ Informações do paciente disponíveis para contexto (dados sensíveis omitidos)")
-        else:
-            context.append("ℹ️ Consulta geral - sem dados específicos de paciente")
-        
-        return "\n".join(context)
     
     def _format_protocols_context(self, protocols: List[Dict[str, Any]]) -> str:
         """Formata contexto dos protocolos para o prompt."""

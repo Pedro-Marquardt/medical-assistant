@@ -77,18 +77,47 @@ class QueryNormalizer:
         return normalized
     
     def get_intent_patterns(self) -> List[str]:
-
+        """Padrões que indicam necessidade de busca híbrida (paciente + protocolo)"""
         return [
+            # Padrões com identificadores específicos
             "dados do paciente [NOME]",
-            "informações do paciente com cpf [CPF]",
+            "informações do paciente com cpf [CPF]", 
             "paciente com id [ID]",
             "buscar paciente [NOME]",
             "encontrar paciente com rg [RG]",
+            "o paciente com cpf [CPF] está com sintomas",
+            "paciente [NOME] apresenta sintomas",
+            "orientações para o paciente [NOME]",
+            "protocolo para o paciente com [CPF]",
+            "tratamento do paciente [ID]",
+            
+            # Padrões médicos específicos do paciente
             "alergias do paciente",
             "histórico médico do paciente", 
             "medicamentos do paciente",
             "diagnóstico do paciente",
-            "paciente apresenta sintomas",
+            "condições do paciente",
+            "exames do paciente",
+            "procedimentos realizados no paciente",
+            
+            # Padrões que combinam paciente + protocolo
+            "paciente apresenta sintomas de diabetes",
+            "paciente com dor no peito",
+            "sintomas do paciente indicam asma",
+            "paciente precisa de protocolo",
+            "qual protocolo para este paciente",
+            "orientações médicas para paciente",
+            "tratamento adequado para o paciente",
+            "procedimento médico no paciente",
+            "cuidados com o paciente",
+            "avaliação clínica do paciente",
+            
+            # Padrões contextuais
+            "este paciente possui",
+            "o paciente em questão",
+            "conforme dados do paciente",
+            "baseado no perfil do paciente",
+            "considerando o histórico do paciente",
         ]
 
 # Singleton instance
