@@ -28,7 +28,7 @@ class SemanticRouterNode:
             log.info(f"Iniciando roteamento semântico para user: {user_id}")
             
             # Executa roteamento semântico
-            search_type = self.semantic_anchor.route(query, threshold=0.5)  # Threshold mais baixo para maior sensibilidade
+            search_type = self.semantic_anchor.route(query, threshold=0.6)  # Threshold ajustado para melhor precisão
             
             # Atualiza estado
             state.update({

@@ -47,13 +47,25 @@ class SemanticAnchor:
             return "vector_search"
         
         try:
+            # Log da query original
+            log.info(f"🔍 Query original: '{query}'")
+            
+            # Normaliza a query para análise
+            normalized_query = query_normalizer.normalize(query)
+            log.info(f"🔍 Query normalizada: '{normalized_query}'")
+            
             query_embedding = self.embeddings_model.embed_query(query)
             query_vector = np.array([query_embedding])
             
             # Compara com âncoras de paciente
             similarities = cosine_similarity(query_vector, self.anchor_vectors)[0]
             max_similarity = np.max(similarities)
-            best_pattern_idx = np.argmax(similarities)
+            
+            # Penalização para queries com diagnósticos mas sem identificadores específicos
+            if "[DIAGNOSTICO]" in normalized_query and not any(tag in normalized_query for tag in ["[NOME]", "[CPF]", "[RG]", "[ID]"]):
+                penalty = 0.15  
+                max_similarity -= penalty
+                log.info(f"Penalização aplicada por [DIAGNOSTICO]: -{penalty:.3f}")
             
             # Log detalhado das similaridades
             patient_anchors = query_normalizer.get_intent_patterns()

@@ -83,10 +83,10 @@ class HybridSearchNode:
                 # Process completed futures as they finish
                 for future in as_completed([future_patient, future_protocols], timeout=30):
                     if future == future_patient:
-                        log.info("✅ Busca MCP concluída")
+                        log.info("Busca MCP concluída")
                         patient_data = future.result()
                     elif future == future_protocols:
-                        log.info("✅ Busca vetorial concluída")
+                        log.info("Busca vetorial concluída")
                         protocols = future.result() or []
             
         except Exception as e:
@@ -140,7 +140,7 @@ class HybridSearchNode:
                 log.info(f"🔹 Resultado MCP: {result}")
                 
                 if result and not isinstance(result, str) or "erro" not in str(result).lower():
-                    log.info("✅ Paciente encontrado via MCP")
+                    log.info("Paciente encontrado via MCP")
                     return {
                         "found": True,
                         "data": result,
