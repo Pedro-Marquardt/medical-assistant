@@ -75,15 +75,16 @@ class ResponseHybridNode:
         """Cria template de prompt híbrido com consideração de dados do paciente."""
         
         template = """
-Você é um assistente médico especializado que integra protocolos hospitalares com dados específicos do paciente.
+Você é um assistente médico especializado que integra protocolos hospitalares com dados específicos do paciente para fornecer orientações clínicas contextualizadas.
 
-🚨 GUARDRAILS OBRIGATÓRIOS:
-- NUNCA prescreva medicamentos específicos
-- NUNCA dê dosagens ou posologias
-- NUNCA substitua consulta médica presencial
-- SEMPRE cite as fontes dos protocolos utilizados
-- SEMPRE considere o contexto específico do paciente
-- SEMPRE recomende avaliação médica presencial personalizada
+🎯 DIRETRIZES CLÍNICAS:
+- ANALISE SEMPRE o histórico médico e alergias do paciente
+- CONSIDERE contraindicações baseadas no perfil do paciente
+- MENCIONE medicamentos e tratamentos conforme protocolos quando relevante
+- DESTAQUE fatores de risco específicos do paciente
+- CONTEXTUALIZE recomendações com dados disponíveis
+- CITE fontes dos protocolos utilizados
+- RECOMENDE acompanhamento médico apropriado
 
 CONTEXTO DA CONSULTA:
 Pergunta: {query}
@@ -94,26 +95,30 @@ Tipo de busca: {search_type}
 PROTOCOLOS ENCONTRADOS:
 {protocols_context}
 
-INSTRUÇÕES ESPECÍFICAS PARA RESPOSTA HÍBRIDA:
-1. Analise os protocolos em relação ao contexto específico do paciente
-2. Forneça orientações personalizadas baseadas nos protocolos e dados disponíveis
-3. SEMPRE cite a fonte de cada protocolo mencionado
-4. Destaque recomendações específicas baseadas no perfil do paciente
-5. Recomende avaliação médica considerando o contexto individual
-6. Use linguagem clara, empática e profissional
+INSTRUÇÕES ESPECÍFICAS PARA ANÁLISE:
+1. **PRIMEIRO**: Extraia e destaque dados importantes do paciente (alergias, histórico familiar, comorbidades, medicamentos em uso)
+2. **SEGUNDO**: Correlacione os protocolos com o perfil específico do paciente
+3. **TERCEIRO**: Identifique contraindicações ou cuidados especiais baseados no histórico
+4. **QUARTO**: Forneça orientações clínicas contextualizadas mencionando medicamentos/tratamentos quando apropriado
+5. **QUINTO**: Recomende próximos passos considerando o contexto individual
 
 FORMATO DA RESPOSTA:
-**🏥 Análise baseada em protocolos e contexto do paciente:**
-[Análise integrada considerando protocolos + dados do paciente]
+**👤 PERFIL CLÍNICO DO PACIENTE:**
+[Extraia e organize dados importantes: alergias, histórico familiar, comorbidades, medicamentos atuais, fatores de risco]
 
-**📋 Protocolos consultados:**
-[Liste os protocolos com suas fontes]
+**🩺 ANÁLISE CONTEXTUALIZADA:**
+[Correlacione protocolos com perfil do paciente, mencione medicamentos/tratamentos conforme protocolos, destaque contraindicações]
 
-**👤 Considerações específicas:**
-[Recomendações baseadas no contexto do paciente]
+**📋 PROTOCOLOS CONSULTADOS:**
+[Liste protocolos com fontes]
 
-**⚠️ Importante:**
-Esta análise integra protocolos hospitalares com o contexto específico disponível, mas não substitui avaliação médica presencial personalizada. Procure um profissional de saúde para avaliação completa.
+**⚠️ CONSIDERAÇÕES ESPECIAIS:**
+[Cuidados específicos baseados no perfil do paciente]
+
+**🔄 PRÓXIMOS PASSOS:**
+[Recomendações de acompanhamento médico considerando o contexto]
+
+**📌 Importante:** Esta análise integra protocolos hospitalares com dados específicos do paciente. Para prescrições e dosagens precisas, consulte médico responsável.
 
 RESPOSTA:
 """
@@ -151,6 +156,12 @@ RESPOSTA:
                 protocols_context=protocols_context
             )
             
+            # Log do prompt completo para debug
+            log.info(f"🚀 PROMPT COMPLETO ENVIADO PARA LLM:")
+            log.info(f"{'='*80}")
+            log.info(prompt)
+            log.info(f"{'='*80}")
+            
             # Stream resposta do LLM
             for chunk in self.llm.stream(prompt):
                 if hasattr(chunk, 'content'):
@@ -163,17 +174,16 @@ RESPOSTA:
             yield from self._generate_fallback_stream()
     
     def _format_patient_context(self, patient_data: Dict[str, Any]) -> str:
-        """Formata contexto do paciente de forma genérica."""
+        """Formata contexto do paciente destacando dados clínicos importantes."""
         
         if not patient_data:
-            return "CONTEXTO DO PACIENTE:\n⚠️ Dados de paciente não disponíveis."
+            return "DADOS DO PACIENTE:\n⚠️ Dados não disponíveis."
         
         if patient_data.get("found") and patient_data.get("data", {}).get("content"):
-            # Passa o conteúdo diretamente do MCP
             content = patient_data["data"]["content"]
-            return f"CONTEXTO DO PACIENTE:\n{content}"
+            return f"DADOS DO PACIENTE:\n{content}"
         else:
-            return "CONTEXTO DO PACIENTE:\n❌ Paciente não encontrado no sistema."
+            return "DADOS DO PACIENTE:\n❌ Paciente não encontrado."
     
     def _format_protocols_context(self, protocols: List[Dict[str, Any]]) -> str:
         """Formata contexto dos protocolos de forma genérica."""
@@ -186,55 +196,71 @@ RESPOSTA:
         for i, protocol in enumerate(protocols, 1):
             content = protocol.get("content", "")
             source = protocol.get("source", "Fonte não identificada")
-            
-            context.append(f"PROTOCOLO {i}:")
-            context.append(f"Conteúdo: {content}")
-            context.append(f"Fonte: {source}")
-            context.append("---")
+            context.append(f"PROTOCOLO {i}: {content} (Fonte: {source})")
         
-        return "\n".join(context)
+        return "\n\n".join(context)
     
     def _has_patient_data(self, patient_data: Dict[str, Any]) -> bool:
         """Verifica se há dados do paciente de forma genérica."""
         return patient_data is not None
     
     def _generate_fallback_stream(self) -> Generator[str, None, None]:
-        """Gera resposta padrão em streaming para casos de erro."""
+        """Gera resposta informativa em streaming para casos de erro."""
         
         fallback_parts = [
-            "**⚠️ Sistema temporariamente indisponível**\n\n",
-            "Não foi possível consultar os protocolos médicos ou dados do paciente no momento.\n\n",
-            "**Recomendação:**\n",
-            "- Procure avaliação médica presencial para sua consulta\n",
-            "- Em caso de emergência, dirija-se ao pronto-socorro mais próximo\n",
-            "- Tente novamente em alguns instantes\n\n",
-            "**Importante:**\n",
-            "Este sistema não substitui avaliação médica profissional. ",
-            "Sempre procure um médico qualificado para orientações específicas sobre sua saúde."
+            "**🔍 Análise temporariamente limitada**\n\n",
+            "**SITUAÇÃO ATUAL:**\n",
+            "- Sistema de protocolos médicos temporariamente indisponível\n",
+            "- Dados do paciente podem não estar acessíveis\n\n",
+            "**ORIENTAÇÕES GERAIS:**\n",
+            "Para consultas sobre medicamentos e tratamentos:\n",
+            "- Consulte o prontuário médico do paciente\n",
+            "- Verifique alergias medicamentosas conhecidas\n",
+            "- Considere histórico familiar e comorbidades\n",
+            "- Avalie interações medicamentosas\n\n",
+            "**EM EMERGÊNCIAS:**\n",
+            "- Pronto-socorro para avaliação imediata\n",
+            "- Protocolos de emergência da instituição\n\n",
+            "**PRÓXIMOS PASSOS:**\n",
+            "- Tente novamente em alguns instantes\n",
+            "- Consulte protocolos institucionais físicos\n",
+            "- Entre em contato com médico responsável\n\n",
+            "📋 Lembre-se: Sempre correlacione orientações com o perfil específico do paciente."
         ]
         
         for part in fallback_parts:
             yield part
     
     def get_hybrid_info(self) -> Dict[str, Any]:
-        """Retorna informações sobre as capacidades híbridas."""
+        """Retorna informações sobre as capacidades híbridas aprimoradas."""
         
         return {
-            "node_type": "hybrid_response",
+            "node_type": "hybrid_response_enhanced",
             "patient_data_integration": True,
+            "clinical_contextualization": True,
             "streaming_enabled": True,
-            "guardrails_active": True,
             "features": [
-                "Integração protocolo + paciente",
-                "Resposta personalizada",
+                "Extração de dados clínicos importantes",
+                "Correlação protocolos + perfil paciente", 
+                "Identificação de contraindicações",
+                "Menção contextualizada de medicamentos",
+                "Análise de fatores de risco",
                 "Streaming em tempo real",
-                "Guardrails médicos",
-                "Contexto detalhado"
+                "Orientações personalizadas"
+            ],
+            "clinical_focus": [
+                "Alergias medicamentosas",
+                "Histórico familiar",
+                "Comorbidades",
+                "Medicamentos em uso",
+                "Fatores de risco específicos",
+                "Contraindicações"
             ],
             "safety_measures": [
-                "Temperatura baixa (0.1) para consistência",
-                "Template híbrido especializado",
-                "Consideração de dados do paciente",
-                "Fallback com streaming"
+                "Temperatura controlada (0.1)",
+                "Template clínico especializado",
+                "Análise contextualizada",
+                "Fallback informativo",
+                "Recomendação de acompanhamento médico"
             ]
         }

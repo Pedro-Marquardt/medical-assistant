@@ -1,18 +1,18 @@
 import numpy as np
-from typing import Tuple
+from typing import Tuple, Optional
 from langchain_ollama import OllamaEmbeddings
 from sklearn.metrics.pairwise import cosine_similarity
 from api.infra.config.env import ConfigEnvs
 from api.infra.utils.logger import log
 from api.infra.utils.query_normalizer import query_normalizer 
+from api.application.services.semantic_anchor.anchor_interface import SemanticAnchorInterface
 
-
-class SemanticAnchor:
+class SemanticAnchor(SemanticAnchorInterface):
     """
     Router semântico simples: decide se busca MCP ou faz busca vetorial.
     """
     
-    def __init__(self, host: str = None):
+    def __init__(self, host: Optional[str] = None) -> None:
         self.host = host or ConfigEnvs.HOST_OLLAMA
         self.embeddings_model = None
         self.anchor_vectors = None
@@ -62,10 +62,10 @@ class SemanticAnchor:
             max_similarity = np.max(similarities)
             
             # Penalização para queries com diagnósticos mas sem identificadores específicos
-            if "[DIAGNOSTICO]" in normalized_query and not any(tag in normalized_query for tag in ["[NOME]", "[CPF]", "[RG]", "[ID]"]):
+            if "[diagnostico]" in normalized_query and not any(tag in normalized_query for tag in ["[nome]", "[cpf]", "[rg]", "[id]"]):
                 penalty = 0.15  
                 max_similarity -= penalty
-                log.info(f"Penalização aplicada por [DIAGNOSTICO]: -{penalty:.3f}")
+                log.info(f"Penalização aplicada por [diagnostico]: -{penalty:.3f}")
             
             # Log detalhado das similaridades
             patient_anchors = query_normalizer.get_intent_patterns()

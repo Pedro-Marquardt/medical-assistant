@@ -45,18 +45,18 @@ class QueryNormalizer:
         
         # Substituições para manter a estrutura semântica
         self.replacements: Dict[str, str] = {
-            'names': 'paciente [NOME]',
-            'cpf': 'cpf [CPF]',
-            'rg': 'rg [RG]', 
-            'patient_ids': 'paciente [ID]',
-            'diagnoses': '[DIAGNOSTICO]',
-            'medical_record': 'prontuário [NUMERO]',
-            'dates': '[DATA]',
-            'times': '[HORA]',
-            'specific_numbers': '[VALOR]',
-            'medications': 'medicamento [MEDICAMENTO]',
-            'medical_codes': '[CODIGO]',
-            'room_numbers': '[LEITO]',
+            'names': 'paciente [nome]',
+            'cpf': 'cpf [cpf]',
+            'rg': 'rg [rg]', 
+            'patient_ids': 'paciente [id]',
+            'diagnoses': '[diagnostico]',
+            'medical_record': 'prontuário [numero]',
+            'dates': '[data]',
+            'times': '[hora]',
+            'specific_numbers': '[valor]',
+            'medications': 'medicamento [medicamento]',
+            'medical_codes': '[codigo]',
+            'room_numbers': '[leito]',
         }
     
     def normalize(self, query: str) -> str:
@@ -79,43 +79,50 @@ class QueryNormalizer:
         # Remove espaços duplos e limpa a string
         normalized = re.sub(r'\s+', ' ', normalized).strip()
         
+        # Converte para lowercase para manter consistência semântica
+        normalized = normalized.lower()
+        
         return normalized
     
     def get_intent_patterns(self) -> List[str]:
         """Padrões que indicam necessidade de busca híbrida (paciente + protocolo)"""
         return [
             # Padrões com identificadores específicos (foco principal)
-            "dados do paciente [NOME]",
-            "informações do paciente com cpf [CPF]", 
-            "paciente com id [ID]",
-            "buscar paciente [NOME]",
-            "encontrar paciente com rg [RG]",
-            "o paciente com cpf [CPF]",
-            "paciente [NOME] tem",
-            "orientações para o paciente [NOME]",
-            "tratamento do paciente [ID]",
+            "dados do paciente [nome]",
+            "qual os dados do paciente [nome]",
+            "quais os dados do paciente [nome]",
+            "qual os dados da paciente [nome]",
+            "quais os dados da paciente [nome]",
+            "informações do paciente com cpf [cpf]", 
+            "paciente com id [id]",
+            "buscar paciente [nome]",
+            "encontrar paciente com rg [rg]",
+            "o paciente com cpf [cpf]",
+            "paciente [nome] tem",
+            "orientações para o paciente [nome]",
+            "tratamento do paciente [id]",
             
             # Padrões médicos específicos do paciente (apenas com identificadores)
-            "alergias do paciente [NOME]",
-            "histórico médico do paciente [ID]", 
-            "medicamentos do paciente [CPF]",
-            "diagnóstico do paciente [NOME]",
-            "condições do paciente [RG]",
-            "exames do paciente [ID]",
+            "alergias do paciente [nome]",
+            "histórico médico do paciente [id]", 
+            "medicamentos do paciente [cpf]",
+            "diagnóstico do paciente [nome]",
+            "condições do paciente [rg]",
+            "exames do paciente [id]",
             
             # Padrões contextuais (referências específicas)
-            "este paciente [NOME]",
-            "o paciente em questão [ID]",
-            "conforme dados do paciente [CPF]",
-            "baseado no perfil do paciente [NOME]",
-            "considerando o histórico do paciente [RG]",
-            "protocolo para o paciente [NOME]",
+            "este paciente [nome]",
+            "o paciente em questão [id]",
+            "conforme dados do paciente [cpf]",
+            "baseado no perfil do paciente [nome]",
+            "considerando o histórico do paciente [rg]",
+            "protocolo para o paciente [nome]",
             
             # Padrões de busca direta por paciente
-            "quem é o paciente [NOME]",
-            "mostrar paciente [CPF]",
-            "localizar paciente [RG]",
-            "verificar paciente [ID]",
+            "quem é o paciente [nome]",
+            "mostrar paciente [cpf]",
+            "localizar paciente [rg]",
+            "verificar paciente [id]",
         ]
 
 # Singleton instance
