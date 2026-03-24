@@ -4,20 +4,22 @@ from concurrent.futures import ThreadPoolExecutor, as_completed
 from api.infra.services.mcp.client import MCPClient
 from api.infra.database.chroma.connection import ChromaDatabase
 from api.infra.utils.logger import log
+from api.application.agents.mcp_agent import MCPAgent
 
 class HybridSearchNode:
     """
     Nó responsável por executar busca híbrida paralela.
-    Combina busca de pacientes via MCP Client + busca de protocolos via ChromaDB.
+    Combina busca de pacientes via MCP Agent Inteligente + busca de protocolos via ChromaDB.
     """
     
     def __init__(self, mcp_client: MCPClient, chroma_db: ChromaDatabase):
         self.mcp_client = mcp_client
         self.chroma_db = chroma_db
+        self.intelligent_agent = MCPAgent(mcp_client)
     
     def execute(self, state: Dict[str, Any]) -> Dict[str, Any]:
         """
-        Executa busca híbrida paralela.
+        Executa busca híbrida paralela usando agente inteligente.
         
         Args:
             state: Estado atual do grafo
@@ -29,10 +31,12 @@ class HybridSearchNode:
             query = state.get("query", "")
             user_id = state.get("user_id", "unknown")
             
-            log.info(f"Iniciando busca híbrida paralela para user: {user_id}")
+            log.info(f"🔍 HYBRID SEARCH - Query recebida: '{query}' para user: {user_id}")
             
-            # 🚀 EXECUÇÃO PARALELA
-            patient_data, protocols = self._parallel_search(query)
+            log.info(f"Iniciando busca híbrida inteligente para user: {user_id}")
+            
+            # 🚀 EXECUÇÃO PARALELA com Agente Inteligente
+            patient_data, protocols = self._parallel_intelligent_search(query)
             
             # Atualiza estado com ambos os resultados
             state.update({
@@ -43,12 +47,12 @@ class HybridSearchNode:
                 "vector_search_completed": len(protocols) > 0
             })
             
-            log.info(f"Busca híbrida concluída - Paciente: {patient_data is not None}, Protocolos: {len(protocols)}")
+            log.info(f"Busca híbrida inteligente concluída - Paciente: {patient_data is not None}, Protocolos: {len(protocols)}")
             
             return state
             
         except Exception as e:
-            log.error(f"Erro na busca híbrida: {e}")
+            log.error(f"Erro na busca híbrida inteligente: {e}")
             
             # Fallback com estado seguro
             state.update({
@@ -60,9 +64,9 @@ class HybridSearchNode:
             
             return state
     
-    def _parallel_search(self, query: str) -> Tuple[Dict[str, Any], List[Dict[str, Any]]]:
+    def _parallel_intelligent_search(self, query: str) -> Tuple[Dict[str, Any], List[Dict[str, Any]]]:
         """
-        Executa busca paralela usando ThreadPoolExecutor.
+        Executa busca paralela usando Agente Inteligente + ChromaDB.
         
         Args:
             query: Query do usuário
@@ -75,28 +79,28 @@ class HybridSearchNode:
         
         try:
             # 🚀 Execução paralela com ThreadPoolExecutor
-            with ThreadPoolExecutor(max_workers=2, thread_name_prefix="HybridSearch") as executor:
+            with ThreadPoolExecutor(max_workers=2, thread_name_prefix="IntelligentSearch") as executor:
                 # Submit both tasks
-                future_patient = executor.submit(self._search_patient, query)
+                future_patient = executor.submit(self._search_patient_intelligent, query)
                 future_protocols = executor.submit(self._search_protocols, query)
                 
                 # Process completed futures as they finish
                 for future in as_completed([future_patient, future_protocols], timeout=30):
                     if future == future_patient:
-                        log.info("Busca MCP concluída")
+                        log.info("🧠 Busca MCP inteligente concluída")
                         patient_data = future.result()
                     elif future == future_protocols:
-                        log.info("Busca vetorial concluída")
+                        log.info("📚 Busca vetorial concluída")
                         protocols = future.result() or []
             
         except Exception as e:
-            log.error(f"Erro na execução paralela: {e}")
+            log.error(f"Erro na execução paralela inteligente: {e}")
             
         return patient_data, protocols
     
-    def _search_patient(self, query: str) -> Dict[str, Any]:
+    def _search_patient_intelligent(self, query: str) -> Dict[str, Any]:
         """
-        Busca paciente via MCP Client.
+        Busca paciente via Agente Inteligente MCP.
         
         Args:
             query: Query do usuário
@@ -105,53 +109,30 @@ class HybridSearchNode:
             Dict: Dados do paciente ou None se não encontrado
         """
         try:
-            log.info("🔍 Iniciando busca de paciente via MCP Agent")
+            log.info("🧠 Iniciando busca inteligente de paciente via MCP Agent")
             
-            # Log da query original
-            log.info(f"🔹 Query para MCP: '{query}'")
+            # O agente inteligente analisa a query e seleciona automaticamente a ferramenta
+            result = self.intelligent_agent.search_patient(query)
             
-            # Detecta tipo de busca baseado na query
-            search_tool = self._detect_search_tool(query)
+            log.info(f"🤖 Resultado do agente inteligente: {result}")
             
-            if search_tool:
-                # Extrai o valor de busca da query
-                search_value = self._extract_search_value(query, search_tool)
-                
-                log.info(f"🔹 Tool: {search_tool}, Value: '{search_value}'")
-                
-                # Monta argumentos corretos baseados na ferramenta
-                if search_tool == "get_patient_by_cpf":
-                    arguments = {"cpf": search_value}
-                elif search_tool == "get_patient_by_rg":
-                    arguments = {"rg": search_value}
-                elif search_tool == "get_patient_by_name":
-                    arguments = {"nome": search_value}
-                elif search_tool == "get_patient_by_id":
-                    arguments = {"id": search_value}
-                else:
-                    arguments = {"query": search_value}
-                
-                log.info(f"🔹 Arguments: {arguments}")
-                
-                # Chama a ferramenta MCP adequada
-                result = self.mcp_client.call_tool(search_tool, arguments)
-                
-                # Log do resultado MCP
-                log.info(f"🔹 Resultado MCP: {result}")
-                
-                if result and not isinstance(result, str) or "erro" not in str(result).lower():
-                    log.info("Paciente encontrado via MCP")
-                    return {
-                        "found": True,
-                        "data": result,
-                        "source": "mcp_client"
-                    }
-            
-            log.info("❌ Paciente não encontrado via MCP")
-            return None
+            if result.get("found", False):
+                log.info("✅ Paciente encontrado via Agente Inteligente")
+                return {
+                    "found": True,
+                    "data": {
+                        "content": result.get("data", ""),
+                        "tools_called": result.get("tools_called", []),
+                        "iterations": result.get("iterations", 0)
+                    },
+                    "source": "intelligent_mcp_agent"
+                }
+            else:
+                log.info("❌ Paciente não encontrado via Agente Inteligente")
+                return None
                 
         except Exception as e:
-            log.error(f"Erro na busca de paciente: {e}")
+            log.error(f"Erro na busca inteligente de paciente: {e}")
             return None
     
     def _detect_search_tool(self, query: str) -> str:
