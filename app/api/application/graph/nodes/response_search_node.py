@@ -74,38 +74,25 @@ class ResponseSearchNode:
         """Cria template de prompt com guardrails médicos."""
         
         template = """
-Você é um assistente médico especializado que fornece informações baseadas em protocolos hospitalares.
+Você é um assistente médico que fornece orientações diretas baseadas em protocolos hospitalares.
 
-GUARDRAILS OBRIGATÓRIOS:
-- NUNCA prescreva medicamentos específicos
-- NUNCA dê dosagens ou posologias
-- NUNCA substitua consulta médica presencial
-- SEMPRE cite as fontes dos protocolos utilizados
-- SEMPRE recomende avaliação médica presencial para casos específicos
+REGRAS:
+- Seja conciso e direto
+- Não prescreva medicamentos ou dosagens
+- Cite fontes dos protocolos
+- Recomende avaliação médica quando necessário
 
-CONTEXTO DA CONSULTA:
 Pergunta: {query}
-Tipo de busca: {search_type}
+Protocolos: {protocols_context}
 
-PROTOCOLOS ENCONTRADOS:
-{protocols_context}
+Formate sua resposta de forma CONCISA:
 
-INSTRUÇÕES:
-1. Analise os protocolos fornecidos
-2. Forneça orientações gerais baseadas nos protocolos
-3. SEMPRE cite a fonte de cada protocolo mencionado
-4. Recomende avaliação médica quando apropriado
-5. Use linguagem clara e profissional
+**Orientação:**
+[Orientação direta baseada nos protocolos]
 
-FORMATO DA RESPOSTA:
-**Orientações baseadas nos protocolos:**
-[Orientações gerais baseadas nos protocolos]
+**Fontes:** [Protocolos consultados]
 
-**Protocolos consultados:**
-[Liste os protocolos com suas fontes]
-
-**⚠️ Importante:**
-Esta informação é baseada em protocolos hospitalares e não substitui avaliação médica presencial. Sempre procure um profissional de saúde qualificado para avaliação específica.
+**Aviso:** Procure avaliação médica presencial para casos específicos.
 
 RESPOSTA:
 """
@@ -160,22 +147,18 @@ RESPOSTA:
         """Formata contexto dos protocolos para o prompt."""
         
         if not protocols:
-            return "Nenhum protocolo específico encontrado. Responda com orientações gerais e recomende consulta médica."
+            return "Nenhum protocolo encontrado."
         
         context = []
         
         for i, protocol in enumerate(protocols, 1):
             content = protocol.get("content", "")
             source = protocol.get("source", "Fonte não identificada")
-            score = protocol.get("score", 0.0)
             
-            context.append(f"PROTOCOLO {i}:")
-            context.append(f"Conteúdo: {content[:500]}...")  # Limita tamanho
-            context.append(f"Fonte: {source}")
-            context.append(f"Relevância: {score:.2f}")
-            context.append("---")
+            # Limita conteúdo para ser mais conciso
+            context.append(f"{i}. {content[:300]}... (Fonte: {source})")
         
-        return "\n".join(context)
+        return "\n\n".join(context)
     
     def _generate_fallback_stream(self) -> Generator[str, None, None]:
         """Gera resposta padrão em streaming para casos de erro."""

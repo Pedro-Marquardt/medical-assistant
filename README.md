@@ -127,6 +127,9 @@ docker-compose ps
 - **📊 Health Check API**: http://localhost:3030/health/chroma
 - **🔍 MCP Server**: http://localhost:8000/ (ferramentas de pacientes)
 - **🗄️ ChromaDB**: http://localhost:8001/ (base vetorial)
+- **💻 Frontend Web**: 
+  - **Docker**: http://localhost:3000/ (porta 80 interna do container)
+  - **Desenvolvimento**: http://localhost:5174/ (Vite dev server)
 
 ### 🧪 Testando o Roteador Semântico
 
@@ -194,19 +197,26 @@ docker-compose restart api
    - **Guardrails médicos** rigorosos
    - **Injeção de dependências** para escalabilidade
 
-2. **🗄️ ChromaDB** (port 8001):
+2. **� Frontend Web** (port 3000 Docker / 5174 dev):
+   - Interface de usuário moderna com **React + TypeScript**
+   - **Mantine UI** para componentes elegantes e acessíveis
+   - **Chat em tempo real** com streaming de respostas
+   - **Markdown rendering** para formatação rica das respostas médicas
+   - **Responsive design** adaptável a diferentes dispositivos
+
+3. **🗄️ ChromaDB** (port 8001):
    - Base vetorial de protocolos médicos
    - **RAG (Retrieval-Augmented Generation)**
    - Embeddings para busca semântica
    - Persistência de dados vetorizados
 
-3. **🔍 MCP Server** (port 8000):
+4. **🔍 MCP Server** (port 8000):
    - **Model Context Protocol** para dados de pacientes
    - Ferramentas especializadas: `patient_by_cpf`, `patient_by_name`, etc.
    - Mock database com dados sintéticos
    - API REST para consultas dinâmicas
 
-4. **🧠 Ollama** (host system):
+5. **🧠 Ollama** (host system):
    - LLM local para geração de respostas
    - Suporte a múltiplos modelos
    - Integração via `host.docker.internal`

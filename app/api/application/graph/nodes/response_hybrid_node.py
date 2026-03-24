@@ -75,50 +75,30 @@ class ResponseHybridNode:
         """Cria template de prompt híbrido com consideração de dados do paciente."""
         
         template = """
-Você é um assistente médico especializado que integra protocolos hospitalares com dados específicos do paciente para fornecer orientações clínicas contextualizadas.
+Você é um assistente médico que integra protocolos com dados do paciente de forma CONCISA.
 
-🎯 DIRETRIZES CLÍNICAS:
-- ANALISE SEMPRE o histórico médico e alergias do paciente
-- CONSIDERE contraindicações baseadas no perfil do paciente
-- MENCIONE medicamentos e tratamentos conforme protocolos quando relevante
-- DESTAQUE fatores de risco específicos do paciente
-- CONTEXTUALIZE recomendações com dados disponíveis
-- CITE fontes dos protocolos utilizados
-- RECOMENDE acompanhamento médico apropriado
+REGRAS:
+- Seja direto e objetivo
+- Correlacione protocolos com perfil do paciente
+- Destaque alergias e contraindicações importantes
+- Não prescreva medicamentos ou dosagens
+- Cite fontes
 
-CONTEXTO DA CONSULTA:
 Pergunta: {query}
-Tipo de busca: {search_type}
-
 {patient_context}
+Protocolos: {protocols_context}
 
-PROTOCOLOS ENCONTRADOS:
-{protocols_context}
+Formate sua resposta de forma DIRETA:
 
-INSTRUÇÕES ESPECÍFICAS PARA ANÁLISE:
-1. **PRIMEIRO**: Extraia e destaque dados importantes do paciente (alergias, histórico familiar, comorbidades, medicamentos em uso)
-2. **SEGUNDO**: Correlacione os protocolos com o perfil específico do paciente
-3. **TERCEIRO**: Identifique contraindicações ou cuidados especiais baseados no histórico
-4. **QUARTO**: Forneça orientações clínicas contextualizadas mencionando medicamentos/tratamentos quando apropriado
-5. **QUINTO**: Recomende próximos passos considerando o contexto individual
+**Perfil:** [Dados importantes do paciente: alergias, comorbidades, medicamentos]
 
-FORMATO DA RESPOSTA:
-**👤 PERFIL CLÍNICO DO PACIENTE:**
-[Extraia e organize dados importantes: alergias, histórico familiar, comorbidades, medicamentos atuais, fatores de risco]
+**Orientação:** [Correlação direta entre protocolos e perfil do paciente]
 
-**🩺 ANÁLISE CONTEXTUALIZADA:**
-[Correlacione protocolos com perfil do paciente, mencione medicamentos/tratamentos conforme protocolos, destaque contraindicações]
+**Cuidados:** [Contraindicações específicas baseadas no perfil]
 
-**📋 PROTOCOLOS CONSULTADOS:**
-[Liste protocolos com fontes]
+**Fontes:** [Protocolos consultados]
 
-**⚠️ CONSIDERAÇÕES ESPECIAIS:**
-[Cuidados específicos baseados no perfil do paciente]
-
-**🔄 PRÓXIMOS PASSOS:**
-[Recomendações de acompanhamento médico considerando o contexto]
-
-**📌 Importante:** Esta análise integra protocolos hospitalares com dados específicos do paciente. Para prescrições e dosagens precisas, consulte médico responsável.
+**Importante:** Consulte médico para prescrições. Esta análise integra protocolos com dados específicos do paciente.
 
 RESPOSTA:
 """
@@ -180,17 +160,17 @@ RESPOSTA:
             return "DADOS DO PACIENTE:\n❌ Paciente não encontrado."
     
     def _format_protocols_context(self, protocols: List[Dict[str, Any]]) -> str:
-        """Formata contexto dos protocolos de forma genérica."""
+        """Formata contexto dos protocolos de forma concisa."""
         
         if not protocols:
-            return "Nenhum protocolo específico encontrado."
+            return "Nenhum protocolo encontrado."
         
         context = []
         
         for i, protocol in enumerate(protocols, 1):
             content = protocol.get("content", "")
             source = protocol.get("source", "Fonte não identificada")
-            context.append(f"PROTOCOLO {i}: {content} (Fonte: {source})")
+            context.append(f"{i}. {content[:250]}... (Fonte: {source})")
         
         return "\n\n".join(context)
     
