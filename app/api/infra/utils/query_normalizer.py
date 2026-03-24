@@ -19,28 +19,7 @@ class QueryNormalizer:
             'patient_ids': re.compile(r'\b(?:pac|id|paciente)[-_\s]*\d+\b', re.IGNORECASE),
             
             # Diagnósticos e condições médicas
-            'diagnoses': re.compile(r'\b(?:dor\s+torácica|cetoacidose\s+diabética|diabetes|hipertensão|asma|anafilaxia|choque\s+anafilático|infarto|iam|angina|pneumonia|covid|bronquite|avc|derrame|crise\s+hipertensiva|arritmia|taquicardia|bradicardia|fibrilação|insuficiência\s+cardíaca|edema\s+pulmonar)\b', re.IGNORECASE),
-            
-            # Números de prontuário
-            'medical_record': re.compile(r'\bprontu[aá]rio\s+n[°º]?\s*\d+\b', re.IGNORECASE),
-            
-            # Datas (DD/MM/AAAA, DD-MM-AAAA, etc.)
-            'dates': re.compile(r'\b\d{1,2}[/-]\d{1,2}[/-]\d{2,4}\b'),
-            
-            # Horários (HH:MM)
-            'times': re.compile(r'\b\d{1,2}:\d{2}\b'),
-            
-            # Valores numéricos específicos (dosagens, idades, etc.)
-            'specific_numbers': re.compile(r'\b\d+(?:\.\d+)?\s*(?:mg|ml|g|kg|anos?|dias?|horas?|minutos?)\b', re.IGNORECASE),
-            
-            # Medicamentos específicos (apenas com contexto claro)
-            'medications': re.compile(r'\b(?:medicamento|remedio|droga)\s+([A-Z][a-z]+(?:[A-Z][a-z]*)*\s*\d*(?:mg|ml)?)\b', re.IGNORECASE),
-            
-            # Códigos médicos (CID, etc.)
-            'medical_codes': re.compile(r'\b(?:CID|ICD)[-\s]*[A-Z]?\d+(?:\.\d+)?\b', re.IGNORECASE),
-            
-            # Números de leitos/quartos
-            'room_numbers': re.compile(r'\b(?:leito|quarto|sala)\s+\d+\b', re.IGNORECASE),
+            'diagnoses': re.compile(r'\b(?:sintomas?|tratamentos?|feridas?|dores?\s+torácicas?|dores?\s+de\s+cabeça|cefaleia|enxaqueca|dores?\s+abdominais?|dores?\s+nas\s+costas|dores?\s+lombares?|dores?\s+no\s+peito|dores?\s+musculares?|dores?\s+articulares?|dores?\s+de\s+garganta|dores?\s+de\s+ouvido|dores?\s+nos\s+dentes|dores?\s+de\s+dente|dores?\s+no\s+estômago|dores?\s+epigástricas?|febre|náuseas?|vômitos?|tonturas?|vertigens?|fadiga|cansaço|faltas?\s+de\s+ar|dispneia|tosses?|coriza|espirros|coceira|prurido|erupções?|rash|inchaços?|edemas?|palpitações?|mal-estar|fraqueza|sonolência|insônia|ansiedade|estresse|depressão|cetoacidose\s+diabética|diabetes|hipertensão|asma|anafilaxia|choque\s+anafilático|infarto|iam|angina|pneumonia|covid|bronquite|avc|derrame|crises?\s+hipertensivas?|arritmias?|taquicardias?|bradicardias?|fibrilações?|insuficiência\s+cardíaca|edemas?\s+pulmonares?)\b', re.IGNORECASE),  
         }
         
         # Substituições para manter a estrutura semântica
@@ -50,13 +29,6 @@ class QueryNormalizer:
             'rg': 'rg [rg]', 
             'patient_ids': 'paciente [id]',
             'diagnoses': '[diagnostico]',
-            'medical_record': 'prontuário [numero]',
-            'dates': '[data]',
-            'times': '[hora]',
-            'specific_numbers': '[valor]',
-            'medications': 'medicamento [medicamento]',
-            'medical_codes': '[codigo]',
-            'room_numbers': '[leito]',
         }
     
     def normalize(self, query: str) -> str:
@@ -71,15 +43,12 @@ class QueryNormalizer:
         """
         normalized = query.strip()
         
-        # Aplica todas as substituições
         for pattern_name, pattern in self.patterns.items():
             replacement = self.replacements.get(pattern_name, '')
             normalized = pattern.sub(replacement, normalized)
         
-        # Remove espaços duplos e limpa a string
         normalized = re.sub(r'\s+', ' ', normalized).strip()
         
-        # Converte para lowercase para manter consistência semântica
         normalized = normalized.lower()
         
         return normalized

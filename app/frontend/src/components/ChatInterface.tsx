@@ -74,7 +74,7 @@ export function ChatInterface() {
               </Stack>
             </Center>
           ) : (
-            <Stack gap="xl" align="stretch" w="100%" maw="800px" mx="auto">
+            <Stack gap="xl" align="stretch" w="100%" maw="800px" mx="auto" style={{ paddingBottom: '20px' }}>
               {messages.map(message => (
                 <MessageBubble key={message.id} message={message} />
               ))}

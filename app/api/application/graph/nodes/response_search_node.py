@@ -76,7 +76,7 @@ class ResponseSearchNode:
         template = """
 Você é um assistente médico especializado que fornece informações baseadas em protocolos hospitalares.
 
-🚨 GUARDRAILS OBRIGATÓRIOS:
+GUARDRAILS OBRIGATÓRIOS:
 - NUNCA prescreva medicamentos específicos
 - NUNCA dê dosagens ou posologias
 - NUNCA substitua consulta médica presencial

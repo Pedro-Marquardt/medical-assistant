@@ -1,5 +1,9 @@
 import { Paper, Text, Group, Avatar, Loader, Box } from '@mantine/core';
 import { IconUser, IconRobot } from '@tabler/icons-react';
+import ReactMarkdown from 'react-markdown';
+import remarkGfm from 'remark-gfm';
+import remarkBreaks from 'remark-breaks';
+import './markdown.css';
 import type { Message } from '../types/chat';
 
 interface MessageBubbleProps {
@@ -18,20 +22,20 @@ export function MessageBubble({ message }: MessageBubbleProps) {
       >
         {!isUser && (
           <Avatar 
-            size="sm" 
+            size="md" 
             radius="xl"
             style={{
               backgroundColor: '#2f9e44',
               color: 'white'
             }}
           >
-            <IconRobot size={16} />
+            <IconRobot size={24} color="white" />
           </Avatar>
         )}
         
         <Box maw="60%">
           <Paper
-            p="sm"
+            p="md"
             radius="lg"
             withBorder
             style={{
@@ -41,9 +45,13 @@ export function MessageBubble({ message }: MessageBubbleProps) {
             }}
           >
             {message.content ? (
-              <Text size="sm" style={{ whiteSpace: 'pre-wrap', wordBreak: 'break-word' }}>
-                {message.content}
-              </Text>
+              <Box className="markdown-content">
+                <ReactMarkdown
+                  remarkPlugins={[remarkGfm, remarkBreaks]}
+                >
+                  {message.content}
+                </ReactMarkdown>
+              </Box>
             ) : (
               message.isStreaming ? (
                 <Box>
@@ -68,14 +76,14 @@ export function MessageBubble({ message }: MessageBubbleProps) {
 
         {isUser && (
           <Avatar 
-            size="sm" 
+            size="md" 
             radius="xl"
             style={{
               backgroundColor: '#51cf66',
               color: 'white'
             }}
           >
-            <IconUser size={16} />
+            <IconUser size={20} color="white" />
           </Avatar>
         )}
       </Group>

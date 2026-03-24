@@ -209,10 +209,10 @@ class HybridSearchNode:
             log.info("📋 Iniciando busca de protocolos via ChromaDB")
             
             # Log da query
-            log.info(f"🔹 Query para ChromaDB: '{query}'")
+            log.info(f"Query para ChromaDB: '{query}'")
             
             # Usa o retriever do ChromaDB
-            retriever = self.chroma_db.get_retriever(k=5)
+            retriever = self.chroma_db.get_retriever(k=3)
             results = retriever.invoke(query)
             
             # Log dos resultados

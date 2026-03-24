@@ -156,12 +156,6 @@ RESPOSTA:
                 protocols_context=protocols_context
             )
             
-            # Log do prompt completo para debug
-            log.info(f"🚀 PROMPT COMPLETO ENVIADO PARA LLM:")
-            log.info(f"{'='*80}")
-            log.info(prompt)
-            log.info(f"{'='*80}")
-            
             # Stream resposta do LLM
             for chunk in self.llm.stream(prompt):
                 if hasattr(chunk, 'content'):
