@@ -6,8 +6,8 @@ class QueryNormalizer:
     def __init__(self):
         # Padrões para remoção de dados específicos
         self.patterns: Dict[str, Pattern] = {
-            # Nomes próprios (apenas em contexto de paciente) - aceita minúsculas também
-            'names': re.compile(r'\b(?:paciente|sr\.?|sra\.?|dr\.?|dra\.?)\s+([A-Za-zçãõáéíóúâêîôûàèìòù]+(?:\s+[A-Za-zçãõáéíóúâêîôûàèìòù]+)*)\b', re.IGNORECASE),
+            # Nomes próprios (apenas em contexto de paciente)
+            'names': re.compile(r'\b(?:paciente|sr\.?|sra\.?|dr\.?|dra\.?)\s+([A-Z][a-zçãõáéíóúâêîôûàèìòù]+(?:\s+[A-Z][a-zçãõáéíóúâêîôûàèìòù]+)*)\b', re.IGNORECASE),
             
             # CPF (XXX.XXX.XXX-XX ou apenas números)
             'cpf': re.compile(r'\bcpf\s*:?\s*\d{3}\.?\d{3}\.?\d{3}[-\.]?\d{2}\b', re.IGNORECASE),

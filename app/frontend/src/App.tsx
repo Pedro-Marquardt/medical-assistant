@@ -1,4 +1,3 @@
-import React from 'react';
 import { MantineProvider } from '@mantine/core';
 import '@mantine/core/styles.css';
 import { ChatInterface } from './components/ChatInterface';

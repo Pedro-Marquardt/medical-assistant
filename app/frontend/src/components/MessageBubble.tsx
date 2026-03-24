@@ -57,7 +57,7 @@ export function MessageBubble({ message }: MessageBubbleProps) {
                 <Box>
                   <Group gap="xs">
                     <Loader size="xs" />
-                    <Box component="span" style={{ color: '#868e96', fontSize: '14px' }}>Digitando...</Box>
+                    <Box component="span" style={{ color: '#868e96', fontSize: '14px' }}>Analisando...</Box>
                   </Group>
                 </Box>
               ) : null

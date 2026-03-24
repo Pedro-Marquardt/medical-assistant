@@ -46,6 +46,20 @@ services:
     networks:
       - medical-assistant-network
 
+  frontend:
+    build:
+      context: ./app/frontend
+      dockerfile: Dockerfile
+    container_name: medical-assistant-frontend
+    ports:
+      - "3000:80"
+    environment:
+      - BACKEND_HOST=http://api:3030
+    depends_on:
+      - api
+    networks:
+      - medical-assistant-network
+
 volumes:
   chroma_data:
 
