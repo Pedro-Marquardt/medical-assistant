@@ -14,8 +14,8 @@ O assistente médico implementa uma arquitetura inteligente baseada em **RAG (Re
 
 O sistema utiliza um **roteador semântico** que analisa a similaridade das consultas para decidir qual estratégia de busca usar:
 
-- **🎯 Threshold Inteligente**: Consultas com similaridade **> 0.5** ativam busca híbrida (RAG + MCP)
-- **💡 Economia de Recursos**: Consultas com similaridade **≤ 0.5** usam apenas RAG vetorial
+- **🎯 Threshold Inteligente**: Consultas com similaridade **> 0.6** ativam busca híbrida (RAG + MCP)
+- **💡 Economia de Recursos**: Consultas com similaridade **≤ 0.6** usam apenas RAG vetorial
 - **⚡ Otimização Automática**: Reduz requests desnecessários ao MCP Server e economiza tokens
 
 ### 🔍 Estratégias de Busca
